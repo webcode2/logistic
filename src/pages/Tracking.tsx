@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Search, MapPin, ArrowRight, Package, Truck, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -65,43 +65,47 @@ const Tracking = () => {
   };
 
   return (
-    <div className="min-h-screen bg-secondary/30 py-12">
-      <div className="container mx-auto px-4">
-        {/* Search Section */}
-        <div className="mx-auto max-w-2xl text-center mb-12">
-          <h1 className="text-3xl font-bold text-foreground mb-4">Track Your Shipment</h1>
-          <p className="text-muted-foreground mb-8">
-            Enter your tracking code to get real-time updates on your package
-          </p>
+    <div className="min-h-screen bg-background">
+      {/* Hero Section */}
+      <section className="bg-foreground text-background py-16">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-2xl text-center">
+            <h1 className="text-3xl lg:text-4xl font-bold mb-4">Track Your Shipment</h1>
+            <p className="text-background/70 mb-8">
+              Enter your tracking code to get real-time updates on your package
+            </p>
 
-          <form onSubmit={handleSearch} className="flex gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Enter tracking code (e.g., LGT-2024-001234)"
-                value={trackingCode}
-                onChange={(e) => setTrackingCode(e.target.value)}
-                className="pl-10 h-12 text-base"
-              />
-            </div>
-            <Button type="submit" size="lg" disabled={isLoading || !trackingCode.trim()}>
-              {isLoading ? 'Searching...' : 'Track'}
-            </Button>
-          </form>
+            <form onSubmit={handleSearch} className="flex gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Enter tracking code (e.g., LGT-2024-001234)"
+                  value={trackingCode}
+                  onChange={(e) => setTrackingCode(e.target.value)}
+                  className="pl-12 h-14 text-base bg-background text-foreground border-0 shadow-xl"
+                />
+              </div>
+              <Button type="submit" size="lg" disabled={isLoading || !trackingCode.trim()} className="h-14 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30">
+                {isLoading ? 'Searching...' : 'Track'}
+              </Button>
+            </form>
 
-          {/* Sample tracking codes hint */}
-          <p className="mt-4 text-sm text-muted-foreground">
-            Try: <span className="font-mono text-primary cursor-pointer" onClick={() => setTrackingCode('LGT-2024-001234')}>LGT-2024-001234</span>
-            {' '} or {' '}
-            <span className="font-mono text-primary cursor-pointer" onClick={() => setTrackingCode('LGT-2024-005678')}>LGT-2024-005678</span>
-          </p>
+            {/* Sample tracking codes hint */}
+            <p className="mt-4 text-sm text-background/60">
+              Try: <span className="font-mono text-primary cursor-pointer hover:underline" onClick={() => setTrackingCode('LGT-2024-001234')}>LGT-2024-001234</span>
+              {' '} or {' '}
+              <span className="font-mono text-primary cursor-pointer hover:underline" onClick={() => setTrackingCode('LGT-2024-005678')}>LGT-2024-005678</span>
+            </p>
+          </div>
         </div>
+      </section>
 
+      <div className="container mx-auto px-4 py-12">
         {/* Loading State */}
         {isLoading && (
           <div className="mx-auto max-w-3xl">
-            <Card>
+            <Card className="border-0 shadow-xl">
               <CardHeader>
                 <Skeleton className="h-8 w-64 mb-2" />
                 <Skeleton className="h-4 w-48" />
@@ -121,15 +125,15 @@ const Tracking = () => {
         {/* Error State */}
         {error && !isLoading && (
           <div className="mx-auto max-w-2xl">
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="border-0 shadow-lg">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Waybill Not Found</AlertTitle>
               <AlertDescription>
                 {error}
               </AlertDescription>
             </Alert>
-            <div className="mt-4 text-center">
-              <Button variant="outline" onClick={handleClear}>
+            <div className="mt-6 text-center">
+              <Button variant="outline" onClick={handleClear} className="border-foreground/20">
                 Try Another Code
               </Button>
             </div>
@@ -139,63 +143,67 @@ const Tracking = () => {
         {/* Results */}
         {waybill && !isLoading && (
           <div className="mx-auto max-w-3xl animate-fade-in">
-            <Card>
-              <CardHeader className="border-b">
+            <Card className="border-0 shadow-xl overflow-hidden">
+              <CardHeader className="border-b bg-gradient-to-r from-foreground to-foreground/90 text-background">
                 {/* Route Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2 text-lg font-semibold">
-                      <MapPin className="h-5 w-5 text-muted-foreground" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-background/10">
+                        <MapPin className="h-4 w-4" />
+                      </div>
                       <span>{waybill.origin}</span>
                     </div>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                    <ArrowRight className="h-5 w-5 text-background/50" />
                     <div className="flex items-center gap-2 text-lg font-semibold">
-                      <MapPin className="h-5 w-5 text-primary" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                        <MapPin className="h-4 w-4" />
+                      </div>
                       <span>{waybill.destination}</span>
                     </div>
                   </div>
-                  <Badge className={cn('text-sm', getStatusColor(waybill.status))}>
+                  <Badge className={cn('text-sm font-medium', getStatusColor(waybill.status))}>
                     {waybill.status}
                   </Badge>
                 </div>
 
                 {/* Tracking Info */}
-                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Tracking Code</p>
-                    <p className="font-mono font-semibold">{waybill.trackingCode}</p>
+                <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+                  <div className="bg-background/10 rounded-lg p-3">
+                    <p className="text-background/60 text-xs uppercase tracking-wider">Tracking Code</p>
+                    <p className="font-mono font-bold text-primary">{waybill.trackingCode}</p>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground">Estimated Delivery</p>
+                  <div className="bg-background/10 rounded-lg p-3">
+                    <p className="text-background/60 text-xs uppercase tracking-wider">Est. Delivery</p>
                     <p className="font-semibold">{new Date(waybill.estimatedDelivery).toLocaleDateString()}</p>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground">Weight</p>
+                  <div className="bg-background/10 rounded-lg p-3">
+                    <p className="text-background/60 text-xs uppercase tracking-wider">Weight</p>
                     <p className="font-semibold">{waybill.weight}</p>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground">Current Location</p>
+                  <div className="bg-background/10 rounded-lg p-3">
+                    <p className="text-background/60 text-xs uppercase tracking-wider">Current Location</p>
                     <p className="font-semibold">{waybill.currentLocation}</p>
                   </div>
                 </div>
               </CardHeader>
 
-              <CardContent className="pt-6">
-                <h3 className="font-semibold text-foreground mb-4">Tracking Timeline</h3>
+              <CardContent className="pt-8">
+                <h3 className="font-bold text-foreground mb-6 text-lg">Tracking Timeline</h3>
                 
                 {/* Timeline */}
                 <div className="relative space-y-0">
                   {waybill.events.map((event, index) => (
-                    <div key={event.id} className="relative flex gap-4 pb-6 last:pb-0">
+                    <div key={event.id} className="relative flex gap-4 pb-8 last:pb-0">
                       {/* Timeline line */}
                       {index !== waybill.events.length - 1 && (
-                        <div className="absolute left-[19px] top-10 h-full w-0.5 bg-border" />
+                        <div className="absolute left-[19px] top-12 h-full w-0.5 bg-border" />
                       )}
                       
                       {/* Icon */}
                       <div className={cn(
-                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
-                        index === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-lg',
+                        index === 0 ? 'bg-primary text-primary-foreground shadow-primary/30' : 'bg-muted text-muted-foreground'
                       )}>
                         {getStatusIcon(event.status)}
                       </div>
@@ -203,13 +211,13 @@ const Tracking = () => {
                       {/* Content */}
                       <div className="flex-1 pt-1">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                          <h4 className="font-semibold text-foreground">{event.status}</h4>
-                          <time className="text-sm text-muted-foreground">
+                          <h4 className="font-bold text-foreground">{event.status}</h4>
+                          <time className="text-sm text-muted-foreground font-medium">
                             {new Date(event.timestamp).toLocaleString()}
                           </time>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">{event.location}</p>
-                        <p className="text-sm text-foreground mt-1">{event.description}</p>
+                        <p className="text-sm text-primary font-medium mt-1">{event.location}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
                       </div>
                     </div>
                   ))}
@@ -217,8 +225,8 @@ const Tracking = () => {
               </CardContent>
             </Card>
 
-            <div className="mt-6 text-center">
-              <Button variant="outline" onClick={handleClear}>
+            <div className="mt-8 text-center">
+              <Button variant="outline" onClick={handleClear} className="border-foreground/20 hover:bg-foreground hover:text-background">
                 Track Another Shipment
               </Button>
             </div>
