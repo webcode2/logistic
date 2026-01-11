@@ -1,14 +1,14 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { Truck, Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
 
-const Footer = () => {
+export default function Footer() {
   return (
     <footer className="bg-foreground text-background">
       <div className="container mx-auto px-4 py-16">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div className="space-y-4">
-            <Link to="/" className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary shadow-lg shadow-primary/30">
                 <Truck className="h-5 w-5 text-primary-foreground" />
               </div>
@@ -24,22 +24,22 @@ const Footer = () => {
             <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-background/80">Quick Links</h3>
             <ul className="space-y-3 text-sm">
               <li>
-                <Link to="/" className="text-background/60 hover:text-primary transition-colors">
+                <Link href="/" className="text-background/60 hover:text-primary transition-colors">
                   Home
                 </Link>
               </li>
               <li>
-                <Link to="/tracking" className="text-background/60 hover:text-primary transition-colors">
+                <Link href="/tracking" className="text-background/60 hover:text-primary transition-colors">
                   Track Shipment
                 </Link>
               </li>
               <li>
-                <Link to="/services" className="text-background/60 hover:text-primary transition-colors">
+                <Link href="/services" className="text-background/60 hover:text-primary transition-colors">
                   Our Services
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="text-background/60 hover:text-primary transition-colors">
+                <Link href="/contact" className="text-background/60 hover:text-primary transition-colors">
                   Contact Us
                 </Link>
               </li>
@@ -109,6 +109,4 @@ const Footer = () => {
       </div>
     </footer>
   );
-};
-
-export default Footer;
+}

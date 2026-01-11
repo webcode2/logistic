@@ -1,0 +1,163 @@
+// This is your Prisma schema file.
+// Learn more about it in the docs: https://pris.ma/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Admin User Model
+model User {
+  id                    String      @id @default(cuid())
+  email                 String      @unique
+  password              String
+  name                  String?
+  phone                  String?
+  
+  // 2FA Permanent Setup (enabled & verified)
+  twoFactorEnabled      Boolean     @default(false)
+  twoFactorVerified     Boolean     @default(false)
+  twoFactorSecret       String?     // TOTP secret key (encrypted, only if enabled)
+  twoFactorBackupCodes  String[]    @default([]) // Hashed backup codes (only if enabled)
+  
+  // 2FA Temporary Setup (during configuration, expires in 15 min)
+  twoFactorTempSecret        String?     // Temporary encrypted secret during setup
+  twoFactorTempSecretExpiresAt DateTime?  // Expiration time for temp secret
+  twoFactorTempBackupCodes   String[]    @default([]) // Temporary plain backup codes during setup
+  
+  requiresTwoFA         Boolean     @default(true) // Force 2FA setup on next login
+  role                  String      @default("USER") // USER or ADMIN
+  lastLogin             DateTime?
+  created_at            DateTime    @default(now())
+  updated_at            DateTime    @updatedAt
+
+  @@index([email])
+}
+
+// Terminal (Node) - Represents a logistics hub/terminal
+model Terminal {
+  id                    String      @id @default(cuid())
+  name                  String      @unique
+  location              String      // City, Country
+  average_processing_days Int       // Days to process at this terminal
+  created_at            DateTime    @default(now())
+  updated_at            DateTime    @updatedAt
+
+  // Relations
+  routeNodes            RouteNode[] // Terminals in routes
+  waybillCurrentNode    Waybill[]   @relation("CurrentTerminal")
+  trackingEvents        TrackingEvent[] // Tracking events at this terminal
+
+  @@index([name])
+  @@index([location])
+}
+
+// Route - Defines the path a shipment takes
+model Route {
+  id                String      @id @default(cuid())
+  name              String      @unique
+  description       String?
+  is_active         Boolean     @default(true)
+  created_at        DateTime    @default(now())
+  updated_at        DateTime    @updatedAt
+
+  // Relations
+  nodes             RouteNode[] // Ordered sequence of terminals
+  waybills          Waybill[]   // Shipments using this route
+
+  @@index([name])
+  @@index([is_active])
+}
+
+// RouteNode - Junction table for ordered terminals in a route
+model RouteNode {
+  id                String    @id @default(cuid())
+  route_id          String
+  terminal_id       String
+  sequence_order    Int       // 0, 1, 2, 3... (order in route)
+  created_at        DateTime  @default(now())
+
+  // Relations
+  route             Route     @relation(fields: [route_id], references: [id], onDelete: Cascade)
+  terminal          Terminal  @relation(fields: [terminal_id], references: [id], onDelete: Restrict)
+
+  @@unique([route_id, sequence_order])
+  @@index([route_id])
+  @@index([terminal_id])
+}
+
+// Waybill/Shipment - Tracks a package through the system
+model Waybill {
+  id                      String    @id @default(cuid())
+  tracking_code           String    @unique
+  route_id                String
+  current_node_index      Int       @default(0) // Index in the route's terminals
+  current_terminal_id     String
+  shipper_name            String
+  shipper_email           String    // Sender email for notifications
+  shipper_phone           String    // Sender phone number
+  shipper_address         String    // Sender address
+  receiver_name           String
+  receiver_email          String    // Receiver email for notifications
+  receiver_phone          String    // Receiver phone number
+  receiver_address        String    // Receiver address
+  origin                  String    // Description of origin
+  destination             String    // Description of destination
+  weight                  String    // e.g., "15.5 kg"
+  dimensions              String    // e.g., "45 x 35 x 25 cm"
+  estimated_delivery_date DateTime  // Calculated based on route
+  status                  ShipmentStatus @default(PROCESSING)
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
+  last_updated            DateTime  @default(now())
+
+  // Relations
+  route                   Route     @relation(fields: [route_id], references: [id], onDelete: Restrict)
+  current_terminal        Terminal  @relation("CurrentTerminal", fields: [current_terminal_id], references: [id], onDelete: Restrict)
+  tracking_events         TrackingEvent[]
+
+  @@index([tracking_code])
+  @@index([route_id])
+  @@index([current_terminal_id])
+  @@index([status])
+  @@index([created_at])
+}
+
+// TrackingEvent - History of shipment movements
+model TrackingEvent {
+  id                String    @id @default(cuid())
+  waybill_id        String
+  terminal_id       String
+  event_type        EventType
+  description       String
+  timestamp         DateTime  @default(now())
+
+  // Relations
+  waybill           Waybill   @relation(fields: [waybill_id], references: [id], onDelete: Cascade)
+  terminal          Terminal  @relation(fields: [terminal_id], references: [id], onDelete: Restrict)
+
+  @@index([waybill_id])
+  @@index([terminal_id])
+  @@index([timestamp])
+}
+
+// Enums
+enum ShipmentStatus {
+  PROCESSING
+  IN_TRANSIT
+  ARRIVED
+  DELIVERED
+}
+
+enum EventType {
+  CREATED
+  ARRIVED
+  PROCESSING
+  DELIVERED
+  DELAYED
+  EXCEPTION
+}
