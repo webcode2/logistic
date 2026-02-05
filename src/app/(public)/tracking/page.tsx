@@ -105,7 +105,7 @@ export default function TrackingPage() {
 
           <div className="container mx-auto px-6 lg:px-20 relative z-10">
             <div className="mx-auto max-w-4xl text-center">
-              <h1 className="text-4xl lg:text-6xl font-black mb-6 tracking-tighter uppercase font-heading italic whitespace-nowrap">
+              <h1 className="text-4xl lg:text-6xl font-black mb-6 tracking-tighter uppercase font-heading italic lg:whitespace-nowrap">
                 Track Your Shipment
               </h1>
               <p className="text-background/60 mb-12 text-lg lg:text-xl max-w-2xl mx-auto font-sans leading-relaxed tracking-wide">
@@ -113,7 +113,7 @@ export default function TrackingPage() {
               </p>
 
               <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto scale-110">
-                <div className="relative flex-1">
+                <div className="relative flex-1 ">
                   <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     type="text"

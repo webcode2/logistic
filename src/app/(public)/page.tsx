@@ -10,7 +10,7 @@ export default function Home() {
     <MainLayout>
       <div className="flex flex-col">
         {/* Hero Section */}
-        <section className="relative overflow-hidden bg-foreground text-background h-[90vh] flex items-center justify-center py-0">
+        <section className="relative overflow-hidden bg-foreground text-background lg:h-[90vh] flex items-center justify-center py-0">
           {/* Background Image with Overlay */}
           <div className="absolute inset-0 z-0">
             <Image
@@ -282,7 +282,7 @@ export default function Home() {
                 {
                   icon: Bot,
                   title: "AI Sorting",
-                  desc: "Neural networks optimizing sort routes with 99.9% precision.",
+                  desc: "Neural networks optimizing sort routes with 99.9% efficiency.",
                   color: "from-blue-500/10 to-blue-500/5",
                   border: "border-blue-500/20"
                 },
@@ -472,11 +472,11 @@ export default function Home() {
             <div className="flex flex-col gap-6 sm:flex-row sm:justify-center">
               <Link href="/contact">
                 <Button size="lg" className="h-16 px-12 text-xl bg-foreground text-background hover:bg-foreground/90 shadow-2xl">
-                  Get a Private Quote
+                  Meet the Management
                 </Button>
               </Link>
               <Link href="/tracking">
-                <Button size="lg" variant="outline" className="h-16 px-12 text-xl border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground hover:text-primary">
+                <Button size="lg" variant="outline" className="h-16 px-12 text-xl border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground text-primary">
                   Track Your Package
                 </Button>
               </Link>
@@ -491,5 +491,5 @@ export default function Home() {
         </section>
       </div>
     </MainLayout>
-  );
+  )
 }
