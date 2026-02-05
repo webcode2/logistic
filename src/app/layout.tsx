@@ -1,10 +1,23 @@
 import type { Metadata } from 'next';
+import { Inter, Outfit } from 'next/font/google';
 import { Providers } from './providers';
 import '@/index.css';
 
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const outfit = Outfit({
+  subsets: ['latin'],
+  variable: '--font-outfit',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
-  title: 'LogiTrack Pro - Global Logistics Solutions',
-  description: 'Fast, reliable, and secure shipping solutions for businesses worldwide.',
+  title: 'Rhine Route - Efficient Logistics, Seamless Delivery',
+  description: 'Fast, reliable, and secure shipping solutions for businesses worldwide with Rhine Route.',
 };
 
 export default function RootLayout({
@@ -13,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" className={`${inter.variable} ${outfit.variable}`}>
+      <body className="font-sans">
         <Providers>{children}</Providers>
       </body>
     </html>

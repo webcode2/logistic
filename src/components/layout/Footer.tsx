@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Truck, Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
+import { RhineRouteLogo } from '@/components/brand/logo';
 
 export default function Footer() {
   return (
@@ -8,14 +9,11 @@ export default function Footer() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div className="space-y-4">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary shadow-lg shadow-primary/30">
-                <Truck className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold">LogiTrack</span>
+            <Link href="/" className="flex items-center">
+              <RhineRouteLogo height={40} dark />
             </Link>
             <p className="text-sm text-background/60">
-              Your trusted partner for global logistics solutions. Fast, reliable, and secure shipping worldwide.
+              Rhine Route: Efficient Logistics, Seamless Delivery. Fast, reliable, and secure shipping worldwide.
             </p>
           </div>
 
@@ -54,19 +52,19 @@ export default function Footer() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20">
                   <Phone className="h-4 w-4 text-primary" />
                 </div>
-                <span>+234 800 LOGISTICS</span>
+                <span>+49 800 RHINE-LOG</span>
               </li>
               <li className="flex items-center gap-3 text-background/60">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20">
                   <Mail className="h-4 w-4 text-primary" />
                 </div>
-                <span>info@logitrack.com</span>
+                <span>info@rhineroute.com</span>
               </li>
               <li className="flex items-start gap-3 text-background/60">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 shrink-0">
                   <MapPin className="h-4 w-4 text-primary" />
                 </div>
-                <span>123 Logistics Avenue, Victoria Island, Lagos, Nigeria</span>
+                <span>Rhine Tower, 12 Rheinstrasse, 60311 Frankfurt am Main, Germany</span>
               </li>
             </ul>
           </div>
@@ -104,7 +102,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 border-t border-background/10 pt-8 text-center text-sm text-background/50">
-          <p>&copy; {new Date().getFullYear()} LogiTrack. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Rhine Route. All rights reserved.</p>
         </div>
       </div>
     </footer>

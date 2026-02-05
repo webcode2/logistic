@@ -49,6 +49,8 @@ const getStatusIcon = (status: ShipmentStatus) => {
   }
 };
 
+import Image from 'next/image';
+
 export default function TrackingPage() {
   const [trackingCode, setTrackingCode] = useState('');
   const [waybill, setWaybill] = useState<Waybill | null>(null);
@@ -93,27 +95,36 @@ export default function TrackingPage() {
     <MainLayout>
       <div className="min-h-screen bg-background">
         {/* Hero Section */}
-        <section className="bg-foreground text-background py-16">
-          <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-2xl text-center">
-              <h1 className="text-3xl lg:text-4xl font-bold mb-4">Track Your Shipment</h1>
-              <p className="text-background/70 mb-8">
-                Enter your tracking code to get real-time updates on your package
+        <section className="relative bg-[#0a0a0a] text-background py-24 lg:py-32 overflow-hidden items-center flex">
+          {/* Subtle Animated Radiant/Radial Background */}
+          <div className="absolute inset-0 z-0 overflow-hidden">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] bg-primary/20 rounded-full blur-[120px] animate-drift opacity-50" />
+            <div className="absolute top-0 right-0 h-[400px] w-[400px] bg-primary/10 rounded-full blur-[100px] animate-drift [animation-delay:2s] opacity-30" />
+            <div className="absolute bottom-0 left-0 h-[500px] w-[500px] bg-primary/15 rounded-full blur-[130px] animate-drift [animation-delay:4s] opacity-40" />
+          </div>
+
+          <div className="container mx-auto px-6 lg:px-20 relative z-10">
+            <div className="mx-auto max-w-4xl text-center">
+              <h1 className="text-4xl lg:text-6xl font-black mb-6 tracking-tighter uppercase font-heading italic whitespace-nowrap">
+                Track Your Shipment
+              </h1>
+              <p className="text-background/60 mb-12 text-lg lg:text-xl max-w-2xl mx-auto font-sans leading-relaxed tracking-wide">
+                Get real-time updates on your cargo's journey through our integrated global network.
               </p>
 
-              <form onSubmit={handleSearch} className="flex gap-3">
+              <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto scale-110">
                 <div className="relative flex-1">
                   <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     type="text"
-                    placeholder="Enter tracking code"
+                    placeholder="Enter tracking code (e.g., RRT-2024-XXXXXX)"
                     value={trackingCode}
                     onChange={(e) => setTrackingCode(e.target.value)}
-                    className="pl-12 h-14 text-base bg-background text-foreground border-0 shadow-xl"
+                    className="pl-12 h-16 text-lg bg-background text-foreground border-0 shadow-2xl rounded-2xl"
                   />
                 </div>
-                <Button type="submit" size="lg" disabled={isPending || !trackingCode.trim()} className="h-14 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30">
-                  {isPending ? 'Searching...' : 'Track'}
+                <Button type="submit" size="lg" disabled={isPending || !trackingCode.trim()} className="h-16 px-10 text-lg bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/40 rounded-2xl">
+                  {isPending ? 'Searching...' : 'Track Now'}
                 </Button>
               </form>
             </div>
@@ -209,7 +220,7 @@ export default function TrackingPage() {
 
                 <CardContent className="pt-8">
                   <h3 className="font-bold text-foreground mb-6 text-lg">Tracking Timeline</h3>
-                  
+
                   {/* Timeline */}
                   <div className="relative space-y-0">
                     {trackingEvents.length > 0 ? (
@@ -219,7 +230,7 @@ export default function TrackingPage() {
                           {index !== trackingEvents.length - 1 && (
                             <div className="absolute left-[19px] top-12 h-full w-0.5 bg-border" />
                           )}
-                          
+
                           {/* Icon */}
                           <div className={cn(
                             'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-lg',
@@ -256,6 +267,6 @@ export default function TrackingPage() {
           )}
         </div>
       </div>
-    </MainLayout>
+    </MainLayout >
   );
 }

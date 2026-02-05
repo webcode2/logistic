@@ -7,6 +7,8 @@ import { Truck, Menu, X, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+import { RhineRouteLogo } from '@/components/brand/logo';
+
 const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/tracking', label: 'Tracking' },
@@ -23,11 +25,8 @@ export default function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary shadow-lg shadow-primary/30">
-              <Truck className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold text-background">LogiTrack</span>
+          <Link href="/" className="flex items-center">
+            <RhineRouteLogo height={50} dark />
           </Link>
 
           {/* Desktop Navigation */}
@@ -51,12 +50,16 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Contact Info - Desktop */}
-          <div className="hidden items-center gap-4 lg:flex">
+          <div className="hidden items-center gap-6 lg:flex">
             <div className="flex items-center gap-2 text-sm text-background/70">
               <Phone className="h-4 w-4" />
-              <span>+234 800 LOGISTICS</span>
+              <span>+49 800 RHINE-LOG</span>
             </div>
+            <Link href="/contact">
+              <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
+                Get a Quote
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -96,7 +99,7 @@ export default function Navbar() {
               <div className="border-t border-background/10 pt-4 mt-2">
                 <div className="flex items-center gap-2 text-sm text-background/70 px-2">
                   <Phone className="h-4 w-4" />
-                  <span>+234 800 LOGISTICS</span>
+                  <span>+49 800 RHINE-LOG</span>
                 </div>
               </div>
             </nav>

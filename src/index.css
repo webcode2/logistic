@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LogiTrack Logistics Design System - Black & Red Theme */
+/* Rhine Route Logistics Design System - Black & Red Theme */
 
 @layer base {
   :root {
@@ -34,10 +34,10 @@
     /* Status Colors */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
-    
+
     --warning: 45 93% 47%;
     --warning-foreground: 0 0% 0%;
-    
+
     --info: 210 100% 50%;
     --info-foreground: 0 0% 100%;
 
@@ -85,17 +85,17 @@
 
     --success: 142 70% 45%;
     --success-foreground: 0 0% 100%;
-    
+
     --warning: 45 93% 47%;
     --warning-foreground: 0 0% 0%;
-    
+
     --info: 210 100% 60%;
     --info-foreground: 0 0% 100%;
 
     --border: 0 0% 15%;
     --input: 0 0% 15%;
     --ring: 0 84% 55%;
-    
+
     --sidebar-background: 0 0% 6%;
     --sidebar-foreground: 0 0% 90%;
     --sidebar-primary: 0 84% 55%;
@@ -114,7 +114,25 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    letter-spacing: -0.011em;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-outfit), system-ui, -apple-system, sans-serif;
+    @apply tracking-tighter font-bold;
+    line-height: 1.1;
+  }
+
+  p {
+    @apply leading-relaxed;
+    word-spacing: 0.05rem;
   }
 }
 
@@ -122,15 +140,15 @@
   .gradient-primary {
     @apply bg-gradient-to-r from-primary to-rose-700;
   }
-  
+
   .text-gradient {
     @apply bg-gradient-to-r from-primary to-rose-600 bg-clip-text text-transparent;
   }
-  
+
   .glass-effect {
     @apply bg-background/80 backdrop-blur-xl border border-border/50;
   }
-  
+
   .card-hover {
     @apply transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1;
   }

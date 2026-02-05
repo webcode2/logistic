@@ -42,14 +42,14 @@ export default function RouteManagementSidebar() {
   const [routes, setRoutes] = useState<RouteWithNodes[]>([]);
   const [isLoadingTerminals, setIsLoadingTerminals] = useState(false);
   const [isLoadingRoutes, setIsLoadingRoutes] = useState(false);
-  
+
   // New Route Form
   const [isCreateRouteOpen, setIsCreateRouteOpen] = useState(false);
   const [routeName, setRouteName] = useState('');
   const [routeDescription, setRouteDescription] = useState('');
   const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
   const [expandedRoute, setExpandedRoute] = useState<string | null>(null);
-  
+
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -283,7 +283,7 @@ export default function RouteManagementSidebar() {
                                 </p>
                               </div>
                             </div>
-                            
+
                             {/* Node Operation Details */}
                             <div className="ml-8 space-y-1 border-t pt-2">
                               <div className="flex items-center justify-between">
@@ -334,7 +334,7 @@ export default function RouteManagementSidebar() {
               <Label htmlFor="routeName">Route Name *</Label>
               <Input
                 id="routeName"
-                placeholder="e.g., Nigeria Express Route"
+                placeholder="e.g., Rhine Express Route"
                 value={routeName}
                 onChange={(e) => setRouteName(e.target.value)}
               />

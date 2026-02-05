@@ -1,0 +1,15 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Keep-Alive Endpoint
+        run: |
+          curl -X POST "${{ secrets.APP_URL }}/api/keepalive" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

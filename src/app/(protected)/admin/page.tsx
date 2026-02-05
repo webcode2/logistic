@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, Plus, Package, MapPin, RefreshCw, Truck, Calendar, Clock, Settings } from 'lucide-react';
+import { LogOut, Plus, Package, MapPin, RefreshCw, Truck, Calendar, Clock, Settings, CheckCircle, MoreVertical, Mail, ShieldAlert, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { RhineRouteLogo } from '@/components/brand/logo';
 import {
   Table,
   TableBody,
@@ -13,6 +14,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -22,6 +31,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -35,9 +54,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { logoutAction, getAuthStatus } from '@/actions/auth';
-import { getAllWaybillsAdmin, updateWaybillLocation, createNewWaybill, moveWaybillToNode } from '@/actions/admin';
+import { getAllWaybillsAdmin, updateWaybillLocation, createNewWaybill, moveWaybillToNode, markAsDelivered } from '@/actions/admin';
 import { getAllRoutes, getAllTerminals, createTerminal, updateTerminal, deleteTerminal, createRoute, updateRoute, deleteRoute } from '@/actions/tracking';
-import { sendShipmentConfirmationEmail } from '@/actions/email';
+import { sendShipmentConfirmationEmail, sendCustomsClearanceEmail, sendGenericAdminEmail } from '@/actions/email';
 import { cn } from '@/lib/utils';
 import type { Waybill, ShipmentStatus, Route } from '@prisma/client';
 
@@ -89,7 +108,30 @@ export default function AdminPage() {
   const [newTerminalLocation, setNewTerminalLocation] = useState('');
   const [newTerminalAvgDays, setNewTerminalAvgDays] = useState<number | ''>('');
   const [editingTerminalId, setEditingTerminalId] = useState<string | null>(null);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailMode, setEmailMode] = useState<'CUSTOMS' | 'GENERIC'>('GENERIC');
+  const [customEmail, setCustomEmail] = useState({
+    to: '',
+    subject: '',
+    body: '',
+  });
   const [isLoading, setIsLoading] = useState(true);
+  const [isActionPending, setIsActionPending] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    actionLabel: string;
+    onConfirm: () => void;
+    variant: 'default' | 'destructive' | 'warning';
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    actionLabel: 'Continue',
+    onConfirm: () => { },
+    variant: 'default'
+  });
   const [newEvent, setNewEvent] = useState({
     status: 'PROCESSING' as ShipmentStatus,
     location: '',
@@ -114,7 +156,7 @@ export default function AdminPage() {
     receiver_address: '',
     route_id: '',
   });
-  
+
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const { toast } = useToast();
@@ -127,7 +169,7 @@ export default function AdminPage() {
         // Verify auth status first
         const authStatus = await getAuthStatus();
         console.log('Auth Status:', authStatus);
-        
+
         if (!authStatus.isAuthenticated) {
           console.error('User is not authenticated');
           toast({
@@ -138,7 +180,7 @@ export default function AdminPage() {
           router.push('/login');
           return;
         }
-        
+
         if (authStatus.role !== 'ADMIN') {
           console.error('User role is not ADMIN:', authStatus.role);
           toast({
@@ -191,16 +233,43 @@ export default function AdminPage() {
 
     initializeAdmin();
   }, [toast, router]);
-  
-  const loadTerminals = () => {
-    startTransition(async () => {
-      try {
-        const res = await getAllTerminals();
-        if (res.success) setTerminals(res.terminals);
-      } catch (error) {
-        console.error('Failed to load terminals', error);
+
+  const loadShipments = async () => {
+    setIsLoading(true);
+    try {
+      const res = await getAllWaybillsAdmin();
+      if (res.success) {
+        setShipments(res.waybills || []);
+      } else {
+        toast({ title: 'Error', description: res.error || 'Failed to load shipments', variant: 'destructive' });
       }
-    });
+    } catch (error) {
+      console.error('Failed to load waybills:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadRoutes = async () => {
+    try {
+      const result = await getAllRoutes();
+      if (result.success) {
+        setRoutes(result.routes);
+      }
+    } catch (error) {
+      console.error('Failed to load routes:', error);
+    }
+  };
+
+  const loadTerminals = async () => {
+    try {
+      const res = await getAllTerminals();
+      if (res.success) {
+        setTerminals(res.terminals);
+      }
+    } catch (error) {
+      console.error('Failed to load terminals:', error);
+    }
   };
 
   const handleCreateTerminal = () => {
@@ -216,7 +285,7 @@ export default function AdminPage() {
           setNewTerminalName('');
           setNewTerminalLocation('');
           setNewTerminalAvgDays('');
-          loadTerminals();
+          await loadTerminals();
         } else {
           toast({ title: 'Error', description: res.error || 'Failed to create terminal', variant: 'destructive' });
         }
@@ -238,7 +307,7 @@ export default function AdminPage() {
           setNewTerminalName('');
           setNewTerminalLocation('');
           setNewTerminalAvgDays('');
-          loadTerminals();
+          await loadTerminals();
         } else {
           toast({ title: 'Error', description: res.error || 'Failed to update terminal', variant: 'destructive' });
         }
@@ -248,18 +317,35 @@ export default function AdminPage() {
     });
   };
 
-  const handleDeleteTerminalLocal = (terminal_id: string) => {
-    startTransition(async () => {
-      try {
-        const res = await deleteTerminal(terminal_id);
-        if (res.success) {
-          toast({ title: 'Success', description: 'Terminal deleted' });
-          loadTerminals();
-        } else {
-          toast({ title: 'Error', description: res.error || 'Failed to delete terminal', variant: 'destructive' });
-        }
-      } catch (err) {
-        toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to delete terminal', variant: 'destructive' });
+  const handleDeleteTerminalLocal = (terminal_id: string, name: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Terminal',
+      description: `Are you sure you want to delete terminal "${name}"? This will fail if it is used in any routes.`,
+      actionLabel: 'Delete',
+      variant: 'destructive',
+      onConfirm: () => {
+        startTransition(async () => {
+          try {
+            const res = await deleteTerminal(terminal_id);
+            if (res.success) {
+              setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+              toast({ title: 'Success', description: 'Terminal deleted' });
+              await loadTerminals();
+            } else {
+              setConfirmDialog({
+                isOpen: true,
+                title: 'Action Failed',
+                description: res.error || 'Failed to delete terminal.',
+                actionLabel: 'OK',
+                variant: 'warning',
+                onConfirm: () => { setConfirmDialog(prev => ({ ...prev, isOpen: false })) }
+              });
+            }
+          } catch (err) {
+            toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to delete terminal', variant: 'destructive' });
+          }
+        });
       }
     });
   };
@@ -324,6 +410,49 @@ export default function AdminPage() {
     setIsEditRouteModalOpen(true);
   };
 
+  const handleDeliver = async (waybill_id: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Confirm Delivery',
+      description: 'Are you sure you want to mark this shipment as delivered? This will record the final terminal arrival and notify the recipient.',
+      actionLabel: 'Mark as Delivered',
+      variant: 'default',
+      onConfirm: () => executeDelivery(waybill_id)
+    });
+  };
+
+  const executeDelivery = async (waybill_id: string) => {
+    setIsActionPending(true);
+    try {
+      const result = await markAsDelivered(waybill_id);
+      if (result.success) {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        toast({
+          title: 'Shipment Delivered',
+          description: 'The shipment has been marked as delivered successfully.',
+        });
+        await loadShipments();
+      } else {
+        setConfirmDialog({
+          isOpen: true,
+          title: 'Action Restricted',
+          description: result.error || 'Failed to update shipment.',
+          actionLabel: 'I Understand',
+          variant: 'warning',
+          onConfirm: () => { setConfirmDialog(prev => ({ ...prev, isOpen: false })) }
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsActionPending(false);
+    }
+  };
+
   const handleUpdateRouteLocal = () => {
     if (!editingRouteId || !newRouteName.trim() || routeBuilder.length < 2) {
       toast({ title: 'Error', description: 'Provide route name and at least two nodes', variant: 'destructive' });
@@ -342,7 +471,7 @@ export default function AdminPage() {
           setRouteBuilder([]);
           setNewRouteName('');
           setNewRouteDescription('');
-          loadRoutes();
+          await loadRoutes();
         } else {
           toast({ title: 'Error', description: res.error || 'Failed to update route', variant: 'destructive' });
         }
@@ -352,60 +481,39 @@ export default function AdminPage() {
     });
   };
 
-  const handleDeleteRouteLocal = (route_id: string) => {
-    if (!confirm('Delete this route? This cannot be undone.')) return;
-    startTransition(async () => {
-      try {
-        const res = await deleteRoute(route_id);
-        if (res.success) {
-          toast({ title: 'Success', description: 'Route deleted' });
-          loadRoutes();
-        } else {
-          toast({ title: 'Error', description: res.error || 'Failed to delete route', variant: 'destructive' });
-        }
-      } catch (err) {
-        toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to delete route', variant: 'destructive' });
-      }
-    });
-  };
-
-  const loadShipments = () => {
-    setIsLoading(true);
-    startTransition(async () => {
-      try {
-        const result = await getAllWaybillsAdmin();
-        if (result.success) {
-          setShipments(result.waybills);
-        } else {
-          toast({
-            title: 'Error',
-            description: result.error || 'Failed to load shipments',
-            variant: 'destructive',
-          });
-        }
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to load shipments',
-          variant: 'destructive',
+  const handleDeleteRouteLocal = (route_id: string, route_name: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Route',
+      description: `Are you sure you want to delete route "${route_name}"? This cannot be undone.`,
+      actionLabel: 'Delete',
+      variant: 'destructive',
+      onConfirm: () => {
+        startTransition(async () => {
+          try {
+            const res = await deleteRoute(route_id);
+            if (res.success) {
+              setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+              toast({ title: 'Success', description: 'Route deleted' });
+              await loadRoutes();
+            } else {
+              setConfirmDialog({
+                isOpen: true,
+                title: 'Action Failed',
+                description: res.error || 'Failed to delete route.',
+                actionLabel: 'OK',
+                variant: 'warning',
+                onConfirm: () => { setConfirmDialog(prev => ({ ...prev, isOpen: false })) }
+              });
+            }
+          } catch (err) {
+            toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to delete route', variant: 'destructive' });
+          }
         });
       }
-      setIsLoading(false);
     });
   };
 
-  const loadRoutes = () => {
-    startTransition(async () => {
-      try {
-        const result = await getAllRoutes();
-        if (result.success) {
-          setRoutes(result.routes);
-        }
-      } catch (error) {
-        console.error('Failed to load routes:', error);
-      }
-    });
-  };
 
   const handleLogout = () => {
     startTransition(async () => {
@@ -448,7 +556,7 @@ export default function AdminPage() {
     setIsNewShipmentModalOpen(true);
   };
 
-  const handleSubmitEvent = () => {
+  const handleSubmitEvent = async () => {
     if (!selectedShipment) return;
 
     if (newEvent.targetNodeIndex < 0 || !newEvent.date || !newEvent.time) {
@@ -460,42 +568,46 @@ export default function AdminPage() {
       return;
     }
 
-    startTransition(async () => {
-      try {
-        const result = await moveWaybillToNode(selectedShipment.id, newEvent.targetNodeIndex);
-        
-        if (result.success) {
-          toast({
-            title: 'Success',
-            description: 'Waybill moved to selected node successfully.',
-          });
-          setIsUpdateModalOpen(false);
-          setSelectedShipment(null);
-          loadShipments();
-        } else {
-          toast({
-            title: 'Error',
-            description: result.error || 'Failed to move waybill',
-            variant: 'destructive',
-          });
-        }
-      } catch (error) {
+    setIsActionPending(true);
+    try {
+      const result = await moveWaybillToNode(selectedShipment.id, newEvent.targetNodeIndex);
+
+      if (result.success) {
         toast({
-          title: 'Error',
-          description: error instanceof Error ? error.message : 'Failed to move waybill',
-          variant: 'destructive',
+          title: 'Success',
+          description: 'Waybill moved to selected node successfully.',
+        });
+        setIsUpdateModalOpen(false);
+        setSelectedShipment(null);
+        await loadShipments();
+      } else {
+        setConfirmDialog({
+          isOpen: true,
+          title: 'Action Restricted',
+          description: result.error || 'Failed to update shipment location.',
+          actionLabel: 'OK',
+          variant: 'warning',
+          onConfirm: () => { setConfirmDialog(prev => ({ ...prev, isOpen: false })) }
         });
       }
-    });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to move waybill',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsActionPending(false);
+    }
   };
 
-  const handleSubmitNewShipment = () => {
-    if (!newShipment.origin.trim() || !newShipment.destination.trim() || 
-        !newShipment.shipper_name.trim() || !newShipment.shipper_email.trim() ||
-        !newShipment.shipper_phone.trim() || !newShipment.shipper_address.trim() ||
-        !newShipment.receiver_name.trim() || !newShipment.receiver_email.trim() ||
-        !newShipment.receiver_phone.trim() || !newShipment.receiver_address.trim() ||
-        !newShipment.route_id) {
+  const handleSubmitNewShipment = async () => {
+    if (!newShipment.origin.trim() || !newShipment.destination.trim() ||
+      !newShipment.shipper_name.trim() || !newShipment.shipper_email.trim() ||
+      !newShipment.shipper_phone.trim() || !newShipment.shipper_address.trim() ||
+      !newShipment.receiver_name.trim() || !newShipment.receiver_email.trim() ||
+      !newShipment.receiver_phone.trim() || !newShipment.receiver_address.trim() ||
+      !newShipment.route_id) {
       toast({
         title: 'Error',
         description: 'Please fill in all required fields.',
@@ -534,7 +646,7 @@ export default function AdminPage() {
             title: 'Success',
             description: 'Waybill created and confirmation emails sent successfully.',
           });
-          
+
           // Reset form
           setNewShipment({
             trackingCode: '',
@@ -552,9 +664,9 @@ export default function AdminPage() {
             receiver_address: '',
             route_id: '',
           });
-          
+
           setIsNewShipmentModalOpen(false);
-          loadShipments();
+          await loadShipments();
         } else {
           toast({
             title: 'Error',
@@ -572,6 +684,66 @@ export default function AdminPage() {
     });
   };
 
+  const handleOpenEmailModal = (waybill: Waybill, mode: 'CUSTOMS' | 'GENERIC') => {
+    setSelectedShipment(waybill);
+    setEmailMode(mode);
+    if (mode === 'CUSTOMS') {
+      setCustomEmail({
+        to: waybill.receiver_email,
+        subject: `Customs Hold - ${waybill.tracking_code}`,
+        body: '', // Template is handled by the action
+      });
+    } else {
+      setCustomEmail({
+        to: waybill.receiver_email,
+        subject: 'Update Regarding Your Shipment',
+        body: '',
+      });
+    }
+    setIsEmailModalOpen(true);
+  };
+
+  const handleSendEmail = () => {
+    if (!selectedShipment) return;
+
+    startTransition(async () => {
+      try {
+        let result;
+        if (emailMode === 'CUSTOMS') {
+          const trackingUrl = `${window.location.origin}/tracking/${selectedShipment.tracking_code}`;
+          result = await sendCustomsClearanceEmail(selectedShipment, trackingUrl);
+        } else {
+          result = await sendGenericAdminEmail(
+            customEmail.to,
+            customEmail.subject,
+            customEmail.body,
+            selectedShipment.tracking_code
+          );
+        }
+
+        if (result.success) {
+          toast({
+            title: 'Email Sent',
+            description: 'The notification has been sent successfully.',
+          });
+          setIsEmailModalOpen(false);
+        } else {
+          toast({
+            title: 'Error',
+            description: result.error || 'Failed to send email',
+            variant: 'destructive',
+          });
+        }
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'An unexpected error occurred',
+          variant: 'destructive',
+        });
+      }
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -579,15 +751,9 @@ export default function AdminPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                <Truck className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">Admin Dashboard</h1>
-                <p className="text-sm text-background/70">
-                  Welcome, <span className="font-medium text-primary">admin</span>
-                </p>
-              </div>
+              <RhineRouteLogo height={32} dark />
+              <div className="h-6 w-px bg-background/20 hidden sm:block" />
+              <h1 className="text-lg font-black tracking-tighter uppercase font-heading hidden sm:block italic">Admin Dashboard</h1>
             </div>
             <div className="flex gap-2">
               <Button
@@ -600,9 +766,9 @@ export default function AdminPage() {
                 <Settings className="mr-2 h-4 w-4" />
                 Profile
               </Button>
-              <Button 
-                variant="outline" 
-                onClick={handleLogout} 
+              <Button
+                variant="outline"
+                onClick={handleLogout}
                 disabled={isPending}
                 className="border-background/20 text-foreground hover:bg-background hover:text-foreground"
               >
@@ -686,9 +852,9 @@ export default function AdminPage() {
               <CardDescription className="text-background/70">Manage and update shipment locations</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={loadShipments}
                 disabled={isLoading || isPending}
                 className="border-background/20 text-foreground hover:bg-background hover:text-foreground"
@@ -700,7 +866,7 @@ export default function AdminPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsManageRoutesModalOpen(true)}
-                disabled={isPending}
+                disabled={isPending || isActionPending}
                 className="border-background/20 text-foreground hover:bg-background hover:text-foreground"
               >
                 <MapPin className="h-4 w-4 mr-2" />
@@ -710,16 +876,16 @@ export default function AdminPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsTerminalsModalOpen(true)}
-                disabled={isPending}
+                disabled={isPending || isActionPending}
                 className="border-background/20 text-foreground hover:bg-background hover:text-foreground"
               >
                 <Truck className="h-4 w-4 mr-2" />
                 Manage Terminals
               </Button>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 onClick={handleOpenNewShipmentModal}
-                disabled={isPending}
+                disabled={isPending || isActionPending}
                 className="bg-primary hover:bg-primary/90"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -764,16 +930,51 @@ export default function AdminPage() {
                           {new Date(shipment.estimated_delivery_date).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => handleOpenUpdateModal(shipment)}
-                            disabled={isPending}
-                            className="bg-foreground text-background hover:bg-foreground/80"
-                          >
-                            <MapPin className="h-4 w-4 mr-1" />
-                            Update Location
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                                <span className="sr-only">Open menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleOpenUpdateModal(shipment)}
+                                disabled={isActionPending}
+                                className="cursor-pointer"
+                              >
+                                <MapPin className="mr-2 h-4 w-4" />
+                                <span>Update Location</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeliver(shipment.id)}
+                                disabled={isActionPending}
+                                className="cursor-pointer text-green-600 focus:text-green-600"
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                <span>Mark Delivered</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleOpenEmailModal(shipment, 'GENERIC')}
+                                disabled={isActionPending}
+                                className="cursor-pointer"
+                              >
+                                <Mail className="mr-2 h-4 w-4" />
+                                <span>Send Email</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleOpenEmailModal(shipment, 'CUSTOMS')}
+                                disabled={isActionPending}
+                                className="cursor-pointer text-rose-600 focus:text-rose-600"
+                              >
+                                <ShieldAlert className="mr-2 h-4 w-4" />
+                                <span>Customs Hold</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -784,6 +985,85 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Email Notification Modal */}
+      <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {emailMode === 'CUSTOMS' ? (
+                <>
+                  <Settings className="h-5 w-5 text-rose-500" />
+                  Send Customs Hold Notification
+                </>
+              ) : (
+                <>
+                  <Settings className="h-5 w-5 text-primary" />
+                  Compose Custom Email
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {emailMode === 'CUSTOMS'
+                ? 'This will send a pre-formatted customs clearance notice to both shipper and receiver.'
+                : 'Send a personalized email to the recipient regarding this shipment.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Recipient Email</Label>
+              <Input
+                value={customEmail.to}
+                onChange={(e) => setCustomEmail({ ...customEmail, to: e.target.value })}
+                placeholder="recipient@example.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Email Subject</Label>
+              <Input
+                value={customEmail.subject}
+                onChange={(e) => setCustomEmail({ ...customEmail, subject: e.target.value })}
+                placeholder="Email Subject"
+                disabled={emailMode === 'CUSTOMS'}
+              />
+            </div>
+
+            {emailMode === 'GENERIC' && (
+              <div className="space-y-2">
+                <Label>Message Body</Label>
+                <Textarea
+                  value={customEmail.body}
+                  onChange={(e) => setCustomEmail({ ...customEmail, body: e.target.value })}
+                  placeholder="Type your message here..."
+                  rows={5}
+                />
+              </div>
+            )}
+
+            {emailMode === 'CUSTOMS' && (
+              <div className="p-4 bg-muted/50 rounded-lg text-sm text-muted-foreground border">
+                <strong>Preview:</strong> "Your shipment [tracking_code] is currently being held by customs for further inspection..."
+                <p className="mt-2 text-xs italic">Note: The system will automatically use the official template.</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEmailModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendEmail}
+              disabled={isPending || !customEmail.to || (emailMode === 'GENERIC' && !customEmail.body)}
+              className={emailMode === 'CUSTOMS' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-primary'}
+            >
+              {isPending ? 'Sending...' : 'Send Notification'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Update Location Modal */}
       <Dialog open={isUpdateModalOpen} onOpenChange={setIsUpdateModalOpen}>
@@ -844,7 +1124,7 @@ export default function AdminPage() {
                 </div>
               </div>
             )}
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="date" className="flex items-center gap-2">
@@ -884,8 +1164,8 @@ export default function AdminPage() {
             >
               Cancel
             </Button>
-            <Button onClick={handleSubmitEvent} disabled={isPending} className="bg-primary hover:bg-primary/90">
-              {isPending ? 'Moving...' : 'Move Shipment'}
+            <Button onClick={handleSubmitEvent} disabled={isPending || isActionPending} className="bg-primary hover:bg-primary/90">
+              {(isPending || isActionPending) ? 'Moving...' : 'Move Shipment'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1112,8 +1392,8 @@ export default function AdminPage() {
             >
               Cancel
             </Button>
-            <Button onClick={handleSubmitNewShipment} disabled={isPending} className="bg-primary hover:bg-primary/90">
-              {isPending ? 'Creating...' : 'Create Waybill & Send Emails'}
+            <Button onClick={handleSubmitNewShipment} disabled={isPending || isActionPending} className="bg-primary hover:bg-primary/90">
+              {(isPending || isActionPending) ? 'Creating...' : 'Create Waybill & Send Emails'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1126,47 +1406,47 @@ export default function AdminPage() {
             <DialogTitle className="text-2xl">Manage Terminals</DialogTitle>
             <DialogDescription>Create, update, or delete terminals</DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid grid-cols-2 gap-8 px-2">
             {/* Terminal Form */}
             <div className="space-y-5 pr-4">
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Terminal Name</Label>
-                <Input 
-                  value={newTerminalName} 
+                <Input
+                  value={newTerminalName}
                   onChange={(e) => setNewTerminalName(e.target.value)}
                   className="h-10"
                   placeholder="e.g., Lagos Hub"
                 />
               </div>
-              
+
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Location</Label>
-                <Input 
-                  value={newTerminalLocation} 
+                <Input
+                  value={newTerminalLocation}
                   onChange={(e) => setNewTerminalLocation(e.target.value)}
                   className="h-10"
                   placeholder="e.g., Lagos, Nigeria"
                 />
               </div>
-              
+
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Average Processing Days</Label>
-                <Input 
-                  type="number" 
-                  value={String(newTerminalAvgDays)} 
+                <Input
+                  type="number"
+                  value={String(newTerminalAvgDays)}
                   onChange={(e) => setNewTerminalAvgDays(e.target.value === '' ? '' : Number(e.target.value))}
                   className="h-10"
                   placeholder="e.g., 2"
                 />
               </div>
-              
+
               <div className="flex gap-3 pt-4">
                 {editingTerminalId ? (
                   <>
                     <Button onClick={() => handleSaveTerminal()} className="bg-primary flex-1">Save Terminal</Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => { setEditingTerminalId(null); setNewTerminalName(''); setNewTerminalLocation(''); setNewTerminalAvgDays(''); }}
                       className="flex-1"
                     >
@@ -1178,7 +1458,7 @@ export default function AdminPage() {
                 )}
               </div>
             </div>
-            
+
             {/* Terminals List */}
             <div className="space-y-3 pl-4 border-l">
               <Label className="text-base font-semibold block">Existing Terminals ({terminals.length})</Label>
@@ -1194,19 +1474,19 @@ export default function AdminPage() {
                         <p className="text-xs text-muted-foreground">Process: {t.average_processing_days} days</p>
                       </div>
                       <div className="flex gap-2 ml-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           className="h-8 text-xs"
                           onClick={() => { setEditingTerminalId(t.id); setNewTerminalName(t.name); setNewTerminalLocation(t.location); setNewTerminalAvgDays(t.average_processing_days); }}
                         >
                           Edit
                         </Button>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="destructive"
                           className="h-8 text-xs"
-                          onClick={() => handleDeleteTerminalLocal(t.id)}
+                          onClick={() => handleDeleteTerminalLocal(t.id, t.name)}
                         >
                           Delete
                         </Button>
@@ -1227,9 +1507,9 @@ export default function AdminPage() {
             <DialogTitle className="text-2xl">Manage Routes</DialogTitle>
             <DialogDescription>View, edit, or delete existing routes</DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
-            <Button 
+            <Button
               onClick={() => { setIsManageRoutesModalOpen(false); setIsCreateRouteModalOpen(true); }}
               className="bg-primary w-full"
             >
@@ -1267,13 +1547,13 @@ export default function AdminPage() {
                           size="sm"
                           variant="destructive"
                           className="h-9"
-                          onClick={() => handleDeleteRouteLocal(route.id)}
+                          onClick={() => handleDeleteRouteLocal(route.id, route.name)}
                         >
                           Delete
                         </Button>
                       </div>
                     </div>
-                    
+
                     {/* Show route nodes */}
                     {((route as any).nodes?.length || 0) > 0 && (
                       <div className="pt-2 border-t space-y-2">
@@ -1307,7 +1587,7 @@ export default function AdminPage() {
             <DialogTitle className="text-2xl">Create New Route</DialogTitle>
             <DialogDescription>Build a route by selecting and ordering terminals with operation details</DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid grid-cols-3 gap-6 px-2">
             {/* Available Terminals */}
             <div className="space-y-3 pr-4">
@@ -1328,30 +1608,30 @@ export default function AdminPage() {
                 )}
               </div>
             </div>
-            
+
             {/* Route Configuration */}
             <div className="col-span-2 space-y-4 pl-4 border-l">
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Route Name</Label>
-                <Input 
-                  value={newRouteName} 
+                <Input
+                  value={newRouteName}
                   onChange={(e) => setNewRouteName(e.target.value)}
                   className="h-10"
                   placeholder="e.g., Lagos to London Express"
                 />
               </div>
-              
+
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Route Description</Label>
-                <Textarea 
-                  value={newRouteDescription} 
-                  onChange={(e) => setNewRouteDescription(e.target.value)} 
+                <Textarea
+                  value={newRouteDescription}
+                  onChange={(e) => setNewRouteDescription(e.target.value)}
                   rows={3}
                   placeholder="Describe the route..."
                   className="resize-none"
                 />
               </div>
-              
+
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Route Nodes (Sequence)</Label>
                 <div className="border rounded-lg p-4 max-h-72 overflow-y-auto space-y-3">
@@ -1370,8 +1650,8 @@ export default function AdminPage() {
                               <p className="text-xs text-muted-foreground">{n.terminal.location}</p>
                             </div>
                           </div>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="destructive"
                             className="h-8 text-xs shrink-0"
                             onClick={() => handleRemoveNodeFromRoute(idx)}
@@ -1379,18 +1659,18 @@ export default function AdminPage() {
                             Remove
                           </Button>
                         </div>
-                        
-                        <Textarea 
-                          value={n.details} 
-                          onChange={(e) => handleUpdateNodeDetails(idx, e.target.value)} 
+
+                        <Textarea
+                          value={n.details}
+                          onChange={(e) => handleUpdateNodeDetails(idx, e.target.value)}
                           rows={2}
                           placeholder="Operation details for this node..."
                           className="resize-none text-sm"
                         />
-                        
+
                         <div className="flex gap-2 justify-end">
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             className="h-8 text-xs"
                             disabled={idx === 0}
@@ -1398,8 +1678,8 @@ export default function AdminPage() {
                           >
                             ↑ Up
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             className="h-8 text-xs"
                             disabled={idx === routeBuilder.length - 1}
@@ -1413,10 +1693,10 @@ export default function AdminPage() {
                   )}
                 </div>
               </div>
-              
+
               <div className="flex justify-end gap-3 pt-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => { setIsCreateRouteModalOpen(false); setRouteBuilder([]); setNewRouteName(''); setNewRouteDescription(''); }}
                 >
                   Cancel
@@ -1437,7 +1717,7 @@ export default function AdminPage() {
             <DialogTitle className="text-2xl">Edit Route</DialogTitle>
             <DialogDescription>Modify the route name, description, and node sequence</DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid grid-cols-3 gap-6 px-2">
             {/* Available Terminals */}
             <div className="space-y-3 pr-4">
@@ -1458,30 +1738,30 @@ export default function AdminPage() {
                 )}
               </div>
             </div>
-            
+
             {/* Route Configuration */}
             <div className="col-span-2 space-y-4 pl-4 border-l">
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Route Name</Label>
-                <Input 
-                  value={newRouteName} 
+                <Input
+                  value={newRouteName}
                   onChange={(e) => setNewRouteName(e.target.value)}
                   className="h-10"
                   placeholder="e.g., Lagos to London Express"
                 />
               </div>
-              
+
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Route Description</Label>
-                <Textarea 
-                  value={newRouteDescription} 
-                  onChange={(e) => setNewRouteDescription(e.target.value)} 
+                <Textarea
+                  value={newRouteDescription}
+                  onChange={(e) => setNewRouteDescription(e.target.value)}
                   rows={3}
                   placeholder="Describe the route..."
                   className="resize-none"
                 />
               </div>
-              
+
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Route Nodes (Sequence)</Label>
                 <div className="border rounded-lg p-4 max-h-72 overflow-y-auto space-y-3">
@@ -1500,8 +1780,8 @@ export default function AdminPage() {
                               <p className="text-xs text-muted-foreground">{n.terminal.location}</p>
                             </div>
                           </div>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="destructive"
                             className="h-8 text-xs shrink-0"
                             onClick={() => handleRemoveNodeFromRoute(idx)}
@@ -1509,18 +1789,18 @@ export default function AdminPage() {
                             Remove
                           </Button>
                         </div>
-                        
-                        <Textarea 
-                          value={n.details} 
-                          onChange={(e) => handleUpdateNodeDetails(idx, e.target.value)} 
+
+                        <Textarea
+                          value={n.details}
+                          onChange={(e) => handleUpdateNodeDetails(idx, e.target.value)}
                           rows={2}
                           placeholder="Operation details for this node..."
                           className="resize-none text-sm"
                         />
-                        
+
                         <div className="flex gap-2 justify-end">
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             className="h-8 text-xs"
                             disabled={idx === 0}
@@ -1528,8 +1808,8 @@ export default function AdminPage() {
                           >
                             ↑ Up
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             className="h-8 text-xs"
                             disabled={idx === routeBuilder.length - 1}
@@ -1543,10 +1823,10 @@ export default function AdminPage() {
                   )}
                 </div>
               </div>
-              
+
               <div className="flex justify-end gap-3 pt-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => { setIsEditRouteModalOpen(false); setRouteBuilder([]); setNewRouteName(''); setNewRouteDescription(''); setEditingRouteId(null); }}
                 >
                   Cancel
@@ -1564,6 +1844,45 @@ export default function AdminPage() {
       <Dialog open={false}>
         <DialogContent className="hidden">Hidden Routes Dialog</DialogContent>
       </Dialog>
+
+      {/* Confirmation & Warning Global Dialog */}
+      <AlertDialog
+        open={confirmDialog.isOpen}
+        onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, isOpen: open }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className={cn(
+              confirmDialog.variant === 'destructive' && "text-rose-600",
+              confirmDialog.variant === 'warning' && "text-amber-600"
+            )}>
+              <div className="flex items-center gap-2">
+                {confirmDialog.variant === 'warning' && <AlertCircle className="h-5 w-5" />}
+                {confirmDialog.variant === 'destructive' && <ShieldAlert className="h-5 w-5" />}
+                {confirmDialog.title}
+              </div>
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base py-2 text-foreground/80 font-medium">
+              {confirmDialog.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            {confirmDialog.variant === 'default' && (
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+            )}
+            <AlertDialogAction
+              onClick={confirmDialog.onConfirm}
+              className={cn(
+                confirmDialog.variant === 'destructive' && "bg-rose-600 hover:bg-rose-700",
+                confirmDialog.variant === 'warning' && "bg-amber-600 hover:bg-amber-700",
+                confirmDialog.variant === 'default' && "bg-primary"
+              )}
+            >
+              {confirmDialog.actionLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

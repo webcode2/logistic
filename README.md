@@ -1,4 +1,4 @@
-# LogiTrack Pro - Dynamic Route & Waybill System
+# Rhine Route Pro - Dynamic Route & Waybill System
 
 A production-ready logistics tracking platform built with Next.js, Prisma, and PostgreSQL. Features automatic EDD calculation, dynamic routing through predefined terminal sequences, and comprehensive shipment tracking.
 
@@ -25,13 +25,13 @@ A production-ready logistics tracking platform built with Next.js, Prisma, and P
 ```bash
 # 1. Clone and install
 git clone <repo-url>
-cd logitrack-pro
+cd rhine-route
 npm install
 
 # 2. Configure database
 cp .env.example .env.local
 # Edit .env.local with your PostgreSQL credentials:
-# DATABASE_URL="postgresql://user:password@localhost:5432/logitrack_pro"
+# DATABASE_URL="postgresql://user:password@localhost:5432/rhine_route"
 
 # 3. Initialize database
 npx prisma migrate deploy
@@ -240,7 +240,7 @@ npm run db:studio
 
 ```env
 # Database
-DATABASE_URL="postgresql://user:password@localhost:5432/logitrack_pro"
+DATABASE_URL="postgresql://user:password@localhost:5432/rhine_route"
 
 # API
 NEXT_PUBLIC_API_URL="http://localhost:3000"
@@ -268,7 +268,7 @@ For architecture and design details, see [REFACTORING_COMPLETE.md](REFACTORING_C
 
 ## 📄 License
 
-This project is part of the LogiTrack Pro suite.
+This project is part of the Rhine Route Pro suite.
 
 ---
 

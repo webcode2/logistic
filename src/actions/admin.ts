@@ -91,7 +91,7 @@ export async function updateWaybillLocation(waybill_id: string) {
     const nextIndex = waybill.current_node_index + 1;
 
     if (nextIndex >= totalNodes) {
-      return { success: false, error: 'Shipment already delivered' };
+      return { success: false, error: 'Shipment has already reached the final terminal. Please mark it as delivered instead.' };
     }
 
     const nextTerminal = waybill.route.nodes[nextIndex]?.terminal;
@@ -286,7 +286,7 @@ export async function moveWaybillToNode(waybill_id: string, target_node_index: n
     const totalNodes = waybill.route.nodes.length;
 
     if (target_node_index < 0 || target_node_index >= totalNodes) {
-      return { success: false, error: 'Invalid target node index' };
+      return { success: false, error: 'Invalid target terminal selection.' };
     }
 
     if (target_node_index <= waybill.current_node_index) {
@@ -303,14 +303,14 @@ export async function moveWaybillToNode(waybill_id: string, target_node_index: n
       waybill.route.nodes as any,
       target_node_index
     );
-    
+
     if (!remainingTerminals || remainingTerminals.length === 0) {
       return { success: false, error: 'No remaining terminals from target node' };
     }
-    
+
     const newEDD = calculateEDD(targetTerminal, remainingTerminals);
     const newStatus = determineStatus(target_node_index, totalNodes);
-    
+
     if (!newStatus) {
       return { success: false, error: 'Invalid status calculation' };
     }
@@ -353,6 +353,66 @@ export async function moveWaybillToNode(waybill_id: string, target_node_index: n
     return {
       success: false,
       error: 'Failed to move waybill: ' + (error as Error).message,
+    };
+  }
+}
+
+export async function markAsDelivered(waybill_id: string) {
+  try {
+    const waybill = await prisma.waybill.findUnique({
+      where: { id: waybill_id },
+      include: {
+        current_terminal: true,
+        route: {
+          include: {
+            nodes: true
+          }
+        }
+      },
+    });
+
+    if (!waybill) {
+      return { success: false, error: 'Waybill not found' };
+    }
+
+    if (waybill.status === 'DELIVERED') {
+      return { success: false, error: 'Shipment is already delivered.' };
+    }
+
+    // Check if it has reached the last terminal
+    const totalNodes = waybill.route.nodes.length;
+    if (waybill.current_node_index < totalNodes - 1) {
+      const lastNode = waybill.route.nodes[totalNodes - 1];
+      return {
+        success: false,
+        error: `Cannot mark as delivered. The shipment must first reach the final terminal in the route sequence.`
+      };
+    }
+
+    // Update waybill status to DELIVERED
+    const updatedWaybill = await prisma.waybill.update({
+      where: { id: waybill_id },
+      data: {
+        status: 'DELIVERED',
+        last_updated: new Date(),
+      },
+    });
+
+    // Create final tracking event
+    await prisma.trackingEvent.create({
+      data: {
+        waybill_id,
+        terminal_id: waybill.current_terminal_id,
+        event_type: 'DELIVERED',
+        description: `Package successfully delivered to recipient at ${waybill.receiver_address}`,
+      },
+    });
+
+    return { success: true, waybill: updatedWaybill };
+  } catch (error) {
+    return {
+      success: false,
+      error: 'Failed to mark as delivered: ' + (error as Error).message,
     };
   }
 }

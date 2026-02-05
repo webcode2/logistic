@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import MainLayout from '@/components/layout/MainLayout';
 
+import Image from 'next/image';
+
 export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: '',
@@ -28,7 +30,7 @@ export default function ContactPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Basic validation
     if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
       toast({
@@ -51,29 +53,39 @@ export default function ContactPage() {
     }
 
     setIsSubmitting(true);
-    
+
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    
+
     toast({
       title: 'Message Sent!',
       description: 'Thank you for contacting us. We\'ll get back to you soon.',
     });
-    
+
     setFormData({ name: '', email: '', message: '' });
     setIsSubmitting(false);
   };
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-secondary/30 py-12">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h1 className="text-3xl font-bold text-foreground mb-4">Contact Us</h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Have questions about our services? Get in touch with our team and we'll help you find the right logistics solution.
+      <div className="min-h-screen bg-background pb-12">
+        {/* Hero Section */}
+        <section className="relative h-[300px] lg:h-[400px] overflow-hidden bg-foreground text-background mb-12 flex items-center">
+          <Image
+            src="/images/delivery_man.png"
+            alt="Personalized Delivery Support"
+            fill
+            className="object-cover opacity-30"
+          />
+          <div className="container mx-auto px-4 relative z-10 text-center">
+            <h1 className="text-4xl lg:text-7xl font-bold mb-4">Get in Touch</h1>
+            <p className="text-xl text-background/70 max-w-2xl mx-auto">
+              Our specialized logistics experts are ready to help you optimize your supply chain.
             </p>
           </div>
+        </section>
+
+        <div className="container mx-auto px-4">
 
           <div className="grid gap-8 lg:grid-cols-3 max-w-6xl mx-auto">
             {/* Contact Form */}
@@ -149,8 +161,8 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">Phone</h3>
-                      <p className="text-sm text-muted-foreground mt-1">+234 800 LOGISTICS</p>
-                      <p className="text-sm text-muted-foreground">+234 1 234 5678</p>
+                      <p className="text-sm text-muted-foreground mt-1">+49 800 RHINE-LOG</p>
+                      <p className="text-sm text-muted-foreground">+49 69 1234 5678</p>
                     </div>
                   </div>
                 </CardContent>
@@ -164,8 +176,8 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">Email</h3>
-                      <p className="text-sm text-muted-foreground mt-1">info@logitrack.com</p>
-                      <p className="text-sm text-muted-foreground">support@logitrack.com</p>
+                      <p className="text-sm text-muted-foreground mt-1">info@rhineroute.com</p>
+                      <p className="text-sm text-muted-foreground">support@rhineroute.com</p>
                     </div>
                   </div>
                 </CardContent>
@@ -180,9 +192,9 @@ export default function ContactPage() {
                     <div>
                       <h3 className="font-semibold text-foreground">Address</h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        123 Logistics Avenue<br />
-                        Victoria Island<br />
-                        Lagos, Nigeria
+                        Rhine Tower<br />
+                        12 Rheinstrasse<br />
+                        60311 Frankfurt am Main, Germany
                       </p>
                     </div>
                   </div>
