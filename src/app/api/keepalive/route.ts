@@ -8,7 +8,11 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await keepAlive();
-
-    return NextResponse.json({ ok: true });
+    try {
+        await keepAlive();
+        return NextResponse.json({ ok: true });
+    } catch (error) {
+        console.error('Keepalive error:', error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
 }

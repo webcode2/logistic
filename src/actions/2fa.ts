@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma';
 import { generateSecret, generateQRCodeUrl, generateQRCodeDataUrl, generateBackupCodes, hashBackupCodes, verifyBackupCode, verifyToken } from '@/lib/2fa-utils';
+import { formatError } from '@/lib/utils';
 
 
 /**
@@ -32,7 +33,7 @@ export async function getCurrentUser(userId: string) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('getCurrentUser error:', message);
-    return { success: false, error: `Failed to fetch user: ${message}` };
+    return { success: false, error: formatError(error, 'Failed to fetch user profile.') };
   }
 }
 
@@ -67,7 +68,7 @@ export async function updateUserProfile(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('updateUserProfile error:', message);
-    return { success: false, error: `Failed to update profile: ${message}` };
+    return { success: false, error: formatError(error, 'Failed to update profile.') };
   }
 }
 
@@ -103,9 +104,9 @@ export async function initiate2FASetup(userId: string) {
 
     // Generate TOTP secret server-side only
     const secret = await generateSecret(user.email);
-    
+
     // Generate backup codes
-    const backupCodes =  await generateBackupCodes();
+    const backupCodes = await generateBackupCodes();
 
     // Generate QR code provisioning URI (OTPAuth string)
     const otpAuth = await generateQRCodeUrl(user.email, secret);
@@ -114,7 +115,7 @@ export async function initiate2FASetup(userId: string) {
 
     // Store temporary setup data with expiration (15 minutes)
     const setupExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    
+
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -135,7 +136,7 @@ export async function initiate2FASetup(userId: string) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('initiate2FASetup error:', message);
-    return { success: false, error: `Failed to initiate 2FA setup: ${message}` };
+    return { success: false, error: formatError(error, 'Failed to initiate 2FA setup.') };
   }
 }
 
@@ -238,7 +239,7 @@ export async function verify2FASetup(userId: string, verificationCode: string) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('verify2FASetup error:', message);
-    return { success: false, error: `Failed to enable 2FA: ${message}` };
+    return { success: false, error: formatError(error, 'Failed to enable 2FA verification.') };
   }
 }
 
@@ -298,7 +299,7 @@ export async function disable2FA(userId: string, backupCode: string) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('disable2FA error:', message);
-    return { success: false, error: `Failed to disable 2FA: ${message}` };
+    return { success: false, error: formatError(error, 'Failed to disable 2FA.') };
   }
 }
 
@@ -322,7 +323,7 @@ export async function regenerateBackupCodes(userId: string) {
 
     // Generate new backup codes
     const newCodes = await generateBackupCodes();
-    const hashedCodes = await  hashBackupCodes(newCodes);
+    const hashedCodes = await hashBackupCodes(newCodes);
 
     await prisma.user.update({
       where: { id: userId },
@@ -340,6 +341,6 @@ export async function regenerateBackupCodes(userId: string) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('regenerateBackupCodes error:', message);
-    return { success: false, error: `Failed to regenerate backup codes: ${message}` };
+    return { success: false, error: formatError(error, 'Failed to regenerate backup codes.') };
   }
 }

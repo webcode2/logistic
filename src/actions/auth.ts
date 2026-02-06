@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import * as bcrypt from 'bcryptjs';
 import { verifyToken, verifyBackupCode } from '@/lib/2fa-utils';
+import { formatError } from '@/lib/utils';
 
 /**
  * Helper function to set session cookies
@@ -11,7 +12,7 @@ import { verifyToken, verifyBackupCode } from '@/lib/2fa-utils';
 async function setSessionCookies(userId: string): Promise<void> {
   const token = `${userId}-${Date.now()}`;
   const cookieStore = await cookies();
-  
+
   cookieStore.set('auth-token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -114,7 +115,7 @@ export async function loginAction(
     console.error('Login error:', error);
     return {
       success: false,
-      message: 'An error occurred during login. Please try again.',
+      message: formatError(error, 'An error occurred during login. Please try again.'),
     };
   }
 }
@@ -177,7 +178,7 @@ export async function getAuthStatus(): Promise<{
  * Sets session cookies upon successful verification
  */
 export async function verify2FACode(
-  {userId, totpCode}: { userId: string; totpCode: string }
+  { userId, totpCode }: { userId: string; totpCode: string }
 ): Promise<{
   success: boolean;
   message?: string;
@@ -227,7 +228,7 @@ export async function verify2FACode(
     console.error('Error verifying 2FA code:', error);
     return {
       success: false,
-      message: 'Error verifying 2FA code',
+      message: formatError(error, 'Error verifying 2FA code.'),
     };
   }
 }
@@ -311,7 +312,7 @@ export async function verify2FABackupCode(
     console.error('Error verifying backup code:', error);
     return {
       success: false,
-      message: 'Error verifying backup code',
+      message: formatError(error, 'Error verifying backup code.'),
     };
   }
 }

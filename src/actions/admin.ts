@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma';
 import { calculateEDD, getRemainingTerminals, generateTrackingCode, determineStatus } from '@/lib/tracking-utils';
+import { formatError } from '@/lib/utils';
 
 export async function getAllWaybillsAdmin() {
   try {
@@ -28,7 +29,7 @@ export async function getAllWaybillsAdmin() {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to fetch waybills',
+      error: formatError(error, 'Failed to fetch waybills.'),
       waybills: [],
     };
   }
@@ -62,7 +63,7 @@ export async function getWaybillDetails(waybill_id: string) {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to fetch waybill details',
+      error: formatError(error, 'Failed to fetch waybill details.'),
     };
   }
 }
@@ -144,7 +145,7 @@ export async function updateWaybillLocation(waybill_id: string) {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to update waybill location: ' + (error as Error).message,
+      error: formatError(error, 'Failed to update waybill location.'),
     };
   }
 }
@@ -258,7 +259,7 @@ export async function createNewWaybill(data: {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return {
       success: false,
-      error: 'Failed to create waybill: ' + errorMessage,
+      error: formatError(error, 'Failed to create waybill.'),
     };
   }
 }
@@ -352,7 +353,7 @@ export async function moveWaybillToNode(waybill_id: string, target_node_index: n
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to move waybill: ' + (error as Error).message,
+      error: formatError(error, 'Failed to move waybill.'),
     };
   }
 }
@@ -412,7 +413,7 @@ export async function markAsDelivered(waybill_id: string) {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to mark as delivered: ' + (error as Error).message,
+      error: formatError(error, 'Failed to mark as delivered.'),
     };
   }
 }

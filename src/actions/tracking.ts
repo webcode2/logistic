@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma';
 import { calculateEDD, determineStatus, generateTrackingCode, getRemainingTerminals } from '@/lib/tracking-utils';
+import { formatError } from '@/lib/utils';
 
 // Terminal Actions
 export async function createTerminal(data: {
@@ -22,7 +23,7 @@ export async function createTerminal(data: {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to create terminal: ' + (error as Error).message,
+      error: formatError(error, 'Failed to create terminal.'),
     };
   }
 }
@@ -37,7 +38,7 @@ export async function getAllTerminals() {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to fetch terminals',
+      error: formatError(error, 'Failed to fetch terminals.'),
       terminals: [],
     };
   }
@@ -60,7 +61,7 @@ export async function updateTerminal(terminal_id: string, data: {
     });
     return { success: true, terminal };
   } catch (error) {
-    return { success: false, error: 'Failed to update terminal: ' + (error as Error).message };
+    return { success: false, error: formatError(error, 'Failed to update terminal.') };
   }
 }
 
@@ -70,7 +71,7 @@ export async function deleteTerminal(terminal_id: string) {
     const terminal = await prisma.terminal.delete({ where: { id: terminal_id } });
     return { success: true, terminal };
   } catch (error) {
-    return { success: false, error: 'Failed to delete terminal (it may be used by routes): ' + (error as Error).message };
+    return { success: false, error: formatError(error, 'Failed to delete terminal (it may be used by existing routes).') };
   }
 }
 
@@ -107,7 +108,7 @@ export async function createRoute(data: {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to create route: ' + (error as Error).message,
+      error: formatError(error, 'Failed to create route.'),
     };
   }
 }
@@ -147,7 +148,7 @@ export async function updateRoute(route_id: string, data: {
 
     return { success: true, route: updated, routeNodes };
   } catch (error) {
-    return { success: false, error: 'Failed to update route: ' + (error as Error).message };
+    return { success: false, error: formatError(error, 'Failed to update route.') };
   }
 }
 
@@ -157,7 +158,7 @@ export async function deleteRoute(route_id: string) {
     const route = await prisma.route.update({ where: { id: route_id }, data: { is_active: false, updated_at: new Date() } });
     return { success: true, route };
   } catch (error) {
-    return { success: false, error: 'Failed to delete route: ' + (error as Error).message };
+    return { success: false, error: formatError(error, 'Failed to delete route.') };
   }
 }
 
@@ -177,7 +178,7 @@ export async function getAllRoutes() {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to fetch routes',
+      error: formatError(error, 'Failed to fetch routes.'),
       routes: [],
     };
   }
@@ -203,7 +204,7 @@ export async function getRouteById(route_id: string) {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to fetch route',
+      error: formatError(error, 'Failed to fetch route details.'),
     };
   }
 }
@@ -319,7 +320,7 @@ export async function createWaybill(data: {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to create waybill: ' + (error as Error).message,
+      error: formatError(error, 'Failed to create waybill.'),
     };
   }
 }
@@ -352,7 +353,7 @@ export async function getWaybillByTrackingCode(tracking_code: string) {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to fetch waybill',
+      error: formatError(error, 'Failed to fetch waybill information.'),
     };
   }
 }
@@ -377,7 +378,7 @@ export async function getAllWaybills() {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to fetch waybills',
+      error: formatError(error, 'Failed to fetch list of waybills.'),
       waybills: [],
     };
   }
@@ -467,7 +468,7 @@ export async function moveToNextNode(waybill_id: string) {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to move to next node: ' + (error as Error).message,
+      error: formatError(error, 'Failed to update movement status.'),
     };
   }
 }
@@ -486,7 +487,7 @@ export async function getTrackingEvents(waybill_id: string) {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to fetch tracking events',
+      error: formatError(error, 'Failed to fetch tracking history.'),
       events: [],
     };
   }

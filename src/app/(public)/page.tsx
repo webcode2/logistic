@@ -188,38 +188,90 @@ export default function Home() {
                 <div className="absolute -inset-4 bg-primary/5 rounded-3xl blur-3xl opacity-50" />
                 <div className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-muted/30 border border-border/50 flex items-center justify-center p-12">
                   {/* Digital Supply Chain SVG Illustration */}
-                  <svg className="w-full h-full" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    {/* Background Nodes */}
-                    <circle cx="50" cy="50" r="15" className="fill-primary/10 stroke-primary/20" strokeWidth="1" />
-                    <circle cx="350" cy="50" r="15" className="fill-primary/10 stroke-primary/20" strokeWidth="1" />
-                    <circle cx="50" cy="250" r="15" className="fill-primary/10 stroke-primary/20" strokeWidth="1" />
-                    <circle cx="350" cy="250" r="15" className="fill-primary/10 stroke-primary/20" strokeWidth="1" />
-                    <circle cx="200" cy="150" r="25" className="fill-primary/20 stroke-primary/40 animate-pulse" strokeWidth="2" />
+                  <svg className="w-full h-full p-4" viewBox="0 0 600 450" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.8" />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.2" />
+                      </linearGradient>
+                      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="5" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
+                    </defs>
 
-                    {/* Connecting Lines */}
-                    <path d="M65 50 H335" className="stroke-primary/20" strokeWidth="2" strokeDasharray="4 4" />
-                    <path d="M65 250 H335" className="stroke-primary/20" strokeWidth="2" strokeDasharray="4 4" />
-                    <path d="M50 65 V235" className="stroke-primary/20" strokeWidth="2" strokeDasharray="4 4" />
-                    <path d="M350 65 V235" className="stroke-primary/20" strokeWidth="2" strokeDasharray="4 4" />
+                    {/* Connection Web - Faint Grid */}
+                    <path d="M100 100 L500 100 L500 350 L100 350 Z" className="stroke-primary/10" strokeWidth="1" strokeDasharray="10 10" />
+                    <path d="M100 100 L500 350 M500 100 L100 350" className="stroke-primary/5" strokeWidth="1" />
 
-                    {/* Flow Paths to Center */}
-                    <path d="M65 65 L175 125" className="stroke-primary" strokeWidth="2" strokeDasharray="8 8">
-                      <animate attributeName="stroke-dashoffset" from="16" to="0" dur="2s" repeatCount="indefinite" />
-                    </path>
-                    <path d="M335 65 L225 125" className="stroke-primary" strokeWidth="2" strokeDasharray="8 8">
-                      <animate attributeName="stroke-dashoffset" from="16" to="0" dur="2s" repeatCount="indefinite" />
-                    </path>
-                    <path d="M65 235 L175 175" className="stroke-primary" strokeWidth="2" strokeDasharray="8 8">
-                      <animate attributeName="stroke-dashoffset" from="16" to="0" dur="2s" repeatCount="indefinite" />
-                    </path>
-                    <path d="M335 235 L225 175" className="stroke-primary" strokeWidth="2" strokeDasharray="8 8">
-                      <animate attributeName="stroke-dashoffset" from="16" to="0" dur="2s" repeatCount="indefinite" />
-                    </path>
+                    {/* Main Flow Paths to Center */}
+                    <path d="M100 100 L300 225" className="stroke-primary/30" strokeWidth="2" strokeDasharray="12 12" />
+                    <path d="M500 100 L300 225" className="stroke-primary/30" strokeWidth="2" strokeDasharray="12 12" />
+                    <path d="M100 350 L300 225" className="stroke-primary/30" strokeWidth="2" strokeDasharray="12 12" />
+                    <path d="M500 350 L300 225" className="stroke-primary/30" strokeWidth="2" strokeDasharray="12 12" />
 
-                    {/* Icons inside nodes */}
-                    <g className="text-primary">
-                      <path d="M45 45h10v10H45zM345 45h10v10H345zM45 245h10v10H45zM345 245h10v10H345z" fill="currentColor" opacity="0.5" />
-                      <circle cx="200" cy="150" r="8" fill="currentColor" />
+                    {/* Animated Data Packets */}
+                    {[
+                      "M100 100 L300 225",
+                      "M500 100 L300 225",
+                      "M100 350 L300 225",
+                      "M500 350 L300 225"
+                    ].map((d, i) => (
+                      <circle key={i} r="4" fill="hsl(var(--primary))" filter="url(#glow)">
+                        <animateMotion dur={`${2 + i}s`} repeatCount="indefinite" path={d} />
+                      </circle>
+                    ))}
+
+                    {/* Corner Nodes */}
+                    <g className="nodes">
+                      {/* Top Left - Air */}
+                      <g transform="translate(100, 100)">
+                        <circle r="40" className="fill-background stroke-primary/20" strokeWidth="2" />
+                        <circle r="32" className="fill-primary/5" />
+                        <path d="M-12 -5 L12 -5 L0 15 Z" className="fill-primary/60" transform="rotate(-45)" /> {/* Simplified Plane */}
+                        <text y="55" textAnchor="middle" className="fill-muted-foreground text-[10px] font-bold uppercase tracking-widest">Air Hub</text>
+                      </g>
+
+                      {/* Top Right - Sea */}
+                      <g transform="translate(500, 100)">
+                        <circle r="40" className="fill-background stroke-primary/20" strokeWidth="2" />
+                        <circle r="32" className="fill-primary/5" />
+                        <path d="M-15 5 Q0 15 15 5 L15 -5 L-15 -5 Z" className="fill-primary/60" /> {/* Simplified Ship */}
+                        <text y="55" textAnchor="middle" className="fill-muted-foreground text-[10px] font-bold uppercase tracking-widest">Ocean Port</text>
+                      </g>
+
+                      {/* Bottom Left - Land */}
+                      <g transform="translate(100, 350)">
+                        <circle r="40" className="fill-background stroke-primary/20" strokeWidth="2" />
+                        <circle r="32" className="fill-primary/5" />
+                        <path d="M-15 10 L15 10 L15 -5 L5 -5 L5 -10 L-15 -10 Z" className="fill-primary/60" /> {/* Simplified Truck */}
+                        <text y="55" textAnchor="middle" className="fill-muted-foreground text-[10px] font-bold uppercase tracking-widest">Ground</text>
+                      </g>
+
+                      {/* Bottom Right - Warehouse */}
+                      <g transform="translate(500, 350)">
+                        <circle r="40" className="fill-background stroke-primary/20" strokeWidth="2" />
+                        <circle r="32" className="fill-primary/5" />
+                        <path d="M-12 -12 H12 V12 H-12 Z M-12 -12 L0 -18 L12 -12" className="stroke-primary/60" fill="none" strokeWidth="2" /> {/* Simplified Warehouse */}
+                        <text y="55" textAnchor="middle" className="fill-muted-foreground text-[10px] font-bold uppercase tracking-widest">Fulfillment</text>
+                      </g>
+                    </g>
+
+                    {/* Center Hub - The "Brain" */}
+                    <g transform="translate(300, 225)">
+                      <circle r="60" className="fill-primary/10 stroke-primary/30" strokeWidth="1" filter="url(#glow)">
+                        <animate attributeName="r" values="55;65;55" dur="3s" repeatCount="indefinite" />
+                      </circle>
+                      <circle r="45" className="fill-primary text-primary-foreground shadow-2xl" filter="url(#glow)" />
+
+                      {/* Intelligence Icon (CPU/Core) */}
+                      <rect x="-15" y="-15" width="30" height="30" rx="4" fill="currentColor" />
+                      <path d="M-20 0 H20 M0 -20 V20" className="stroke-primary-foreground/40" strokeWidth="2" />
+                      <circle r="6" fill="white" className="animate-pulse" />
+
+                      <g className="animate-spin-slow" style={{ transformOrigin: 'center' }}>
+                        <circle r="75" className="stroke-primary/20" strokeWidth="1" strokeDasharray="5 15" />
+                      </g>
                     </g>
                   </svg>
 

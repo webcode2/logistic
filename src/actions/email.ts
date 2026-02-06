@@ -2,8 +2,17 @@
 
 import { Resend } from 'resend';
 import type { Waybill } from '@prisma/client';
+import { formatError } from '@/lib/utils';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+function getRandomLogisticsAgent(): string {
+  const agents = [
+    "Sarah", // American Female
+    "Lukas"  // European Male
+  ];
+  return agents[Math.floor(Math.random() * agents.length)];
+}
 
 interface ShipmentEmailData {
   waybill: Waybill;
@@ -14,97 +23,114 @@ export async function sendShipmentConfirmationEmail(data: ShipmentEmailData) {
   const { waybill, trackingUrl } = data;
 
   try {
-    // Send email to shipper
-    const shipperEmail = await resend.emails.send({
-      from: 'shipment@rhineroute.com',
-      to: waybill.shipper_email,
-      subject: `Shipment Confirmed - Tracking #${waybill.tracking_code}`,
-      html: generateShipperEmail(waybill, trackingUrl),
-    });
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    const agentName = getRandomLogisticsAgent();
+    const formattedFrom = `${agentName} via Rhine Route <${fromEmail}>`;
 
-    // Send email to receiver
-    const receiverEmail = await resend.emails.send({
-      from: 'shipment@rhineroute.com',
-      to: waybill.receiver_email,
-      subject: `Package Coming Your Way - Tracking #${waybill.tracking_code}`,
-      html: generateReceiverEmail(waybill, trackingUrl),
-    });
+    // Parallelize sends
+    const [shipperResult, receiverResult] = await Promise.all([
+      resend.emails.send({
+        from: formattedFrom,
+        to: waybill.shipper_email,
+        subject: `Shipment Confirmed - Tracking #${waybill.tracking_code}`,
+        html: generateShipperEmail(waybill, trackingUrl),
+      }),
+      resend.emails.send({
+        from: formattedFrom,
+        to: waybill.receiver_email,
+        subject: `Package Coming Your Way - Tracking #${waybill.tracking_code}`,
+        html: generateReceiverEmail(waybill, trackingUrl),
+      })
+    ]);
 
     return {
       success: true,
-      shipperEmailSent: !shipperEmail.error,
-      receiverEmailSent: !receiverEmail.error,
+      shipperEmailSent: !shipperResult.error,
+      receiverEmailSent: !receiverResult.error,
     };
   } catch (error) {
     console.error('Failed to send shipment confirmation emails:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to send emails',
+      error: formatError(error, 'Failed to send confirmation emails'),
     };
   }
 }
 
 export async function sendShipmentStatusUpdateEmail(waybill: Waybill, trackingUrl: string) {
   try {
-    // Send status update to shipper
-    const shipperEmail = await resend.emails.send({
-      from: 'updates@rhineroute.com',
-      to: waybill.shipper_email,
-      subject: `Shipment Update - ${waybill.tracking_code}`,
-      html: generateStatusUpdateEmail(waybill, trackingUrl, true),
-    });
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    const agentName = getRandomLogisticsAgent();
+    const formattedFrom = `${agentName} From Rhine Route <${fromEmail}>`;
 
-    // Send status update to receiver
-    const receiverEmail = await resend.emails.send({
-      from: 'updates@rhineroute.com',
-      to: waybill.receiver_email,
-      subject: `Your Package Status - ${waybill.tracking_code}`,
-      html: generateStatusUpdateEmail(waybill, trackingUrl, false),
-    });
+    // Parallelize sends
+    const [shipperResult, receiverResult] = await Promise.all([
+      resend.emails.send({
+        from: formattedFrom,
+        to: waybill.shipper_email,
+        subject: `Shipment Update - ${waybill.tracking_code}`,
+        html: generateStatusUpdateEmail(waybill, trackingUrl, true),
+      }),
+      resend.emails.send({
+        from: formattedFrom,
+        to: waybill.receiver_email,
+        subject: `Your Package Status - ${waybill.tracking_code}`,
+        html: generateStatusUpdateEmail(waybill, trackingUrl, false),
+      })
+    ]);
 
     return {
       success: true,
-      shipperEmailSent: !shipperEmail.error,
-      receiverEmailSent: !receiverEmail.error,
+      shipperEmailSent: !shipperResult.error,
+      receiverEmailSent: !receiverResult.error,
     };
   } catch (error) {
     console.error('Failed to send status update emails:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to send status update emails',
+      error: formatError(error, 'Failed to send status update emails'),
     };
   }
 }
 
 export async function sendCustomsClearanceEmail(waybill: Waybill, trackingUrl: string) {
   try {
-    // Send to shipper
-    await resend.emails.send({
-      from: 'customs@rhineroute.com',
-      to: waybill.shipper_email,
-      subject: `Customs Hold - Action Required: ${waybill.tracking_code}`,
-      html: generateCustomsClearanceEmail(waybill, trackingUrl, true),
-    });
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    const agentName = getRandomLogisticsAgent();
+    const formattedFrom = `${agentName} (Customs Dept) <${fromEmail}>`;
 
-    // Send to receiver
-    await resend.emails.send({
-      from: 'customs@rhineroute.com',
-      to: waybill.receiver_email,
-      subject: `Important Update Regarding Your Shipment: ${waybill.tracking_code}`,
-      html: generateCustomsClearanceEmail(waybill, trackingUrl, false),
-    });
+    // Parallelize sends
+    await Promise.all([
+      // Send to shipper
+      resend.emails.send({
+        from: formattedFrom,
+        to: waybill.shipper_email,
+        subject: `Customs Hold - Action Required: ${waybill.tracking_code}`,
+        html: generateCustomsClearanceEmail(waybill, trackingUrl, true),
+      }),
+      // Send to receiver
+      resend.emails.send({
+        from: formattedFrom,
+        to: waybill.receiver_email,
+        subject: `Important Update Regarding Your Shipment: ${waybill.tracking_code}`,
+        html: generateCustomsClearanceEmail(waybill, trackingUrl, false),
+      })
+    ]);
 
     return { success: true };
   } catch (error) {
     console.error('Failed to send customs clearance email:', error);
-    return { success: false, error: 'Failed to send customs clearance email' };
+    return { success: false, error: formatError(error, 'Failed to send customs clearance email') };
   }
 }
 
 export async function sendGenericAdminEmail(to: string, subject: string, body: string, waybillCode?: string) {
   try {
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    const formattedFrom = `Zeno <${fromEmail}>`;
+
     await resend.emails.send({
-      from: 'support@rhineroute.com',
+      from: formattedFrom,
       to: to,
       subject: waybillCode ? `${subject} - ${waybillCode}` : subject,
       html: generateGenericAdminEmail(body, waybillCode),
@@ -113,7 +139,40 @@ export async function sendGenericAdminEmail(to: string, subject: string, body: s
     return { success: true };
   } catch (error) {
     console.error('Failed to send generic admin email:', error);
-    return { success: false, error: 'Failed to send custom email' };
+    return { success: false, error: formatError(error, 'Failed to send custom email') };
+  }
+}
+
+export async function sendContactEmail(name: string, email: string, message: string) {
+  try {
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
+    // Parallelize sending for speed
+    // Note: We use the sender's name in subject but fromEmail must be verified domain or onboarding
+    await Promise.all([
+      // 1. Send notification to admin
+      resend.emails.send({
+        from: fromEmail,
+        to: process.env.ADMIN_EMAIL,
+        subject: `New Contact Form Inquiry from ${name}`,
+        html: generateContactNotificationEmail(name, email, message),
+      }),
+      // 2. Send automated receipt to the user
+      resend.emails.send({
+        from: fromEmail,
+        to: email,
+        subject: 'We received your message - Rhine Route',
+        html: generateContactReceiptEmail(name, message),
+      })
+    ]);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send contact emails:', error);
+    return {
+      success: false,
+      error: formatError(error, 'Failed to process your request. Our mail servers are currently busy.')
+    };
   }
 }
 
@@ -382,6 +441,74 @@ function generateGenericAdminEmail(body: string, waybillCode?: string): string {
           <div class="footer">
             <p>Rhine Route - Professional Logistics Management</p>
             <p>This email was sent by an administrator.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+function generateContactNotificationEmail(name: string, email: string, message: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: sans-serif; color: #333; line-height: 1.6; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; }
+          .field { font-weight: bold; color: ${BRAND_PRIMARY}; margin-top: 15px; }
+          .value { background: #f9f9f9; padding: 10px; border-radius: 5px; margin-top: 5px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          ${generateLogoHtml()}
+          <h2>New Website Inquiry</h2>
+          <div class="field">Name:</div>
+          <div class="value">${name}</div>
+          <div class="field">Email:</div>
+          <div class="value">${email}</div>
+          <div class="field">Message:</div>
+          <div class="value" style="white-space: pre-wrap;">${message}</div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+function generateContactReceiptEmail(name: string, message: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: sans-serif; color: #333; line-height: 1.6; }
+          .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
+          .header { background: ${BRAND_DARK}; color: white; padding: 30px; border-radius: 12px; text-align: center; }
+          .content { padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; margin-top: 20px; background: white; }
+          .footer { margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px; font-size: 12px; color: #64748b; text-align: center; }
+          .quote { border-left: 4px solid ${BRAND_PRIMARY}; padding-left: 15px; font-style: italic; color: #555; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          ${generateLogoHtml()}
+          <div class="header">
+            <h1>Message Received</h1>
+          </div>
+          <div class="content">
+            <p>Hello ${name},</p>
+            <p>Thank you for reaching out to <strong>Rhine Route</strong>. This is an automated confirmation that we have received your inquiry.</p>
+            <p>Our logistics specialists will review your message and get back to you within 24 hours.</p>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 25px 0;">
+            <p><strong>Your Message:</strong></p>
+            <div class="quote">${message}</div>
+          </div>
+          <div class="footer">
+            <p>Rhine Route - Professional Logistics Management</p>
+            <p>Managed by Rhine Group Global</p>
           </div>
         </div>
       </body>

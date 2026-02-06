@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import MainLayout from '@/components/layout/MainLayout';
 
 import Image from 'next/image';
+import { sendContactEmail } from '@/actions/email';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -54,16 +55,31 @@ export default function ContactPage() {
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const result = await sendContactEmail(formData.name, formData.email, formData.message);
 
-    toast({
-      title: 'Message Sent!',
-      description: 'Thank you for contacting us. We\'ll get back to you soon.',
-    });
-
-    setFormData({ name: '', email: '', message: '' });
-    setIsSubmitting(false);
+      if (result.success) {
+        toast({
+          title: 'Message Sent!',
+          description: 'Thank you for contacting us. We\'ll get back to you soon.',
+        });
+        setFormData({ name: '', email: '', message: '' });
+      } else {
+        toast({
+          title: 'Transmission Failed',
+          description: result.error || 'There was an issue sending your message. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'System Error',
+        description: 'An unexpected error occurred. Please try contacting us via phone.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

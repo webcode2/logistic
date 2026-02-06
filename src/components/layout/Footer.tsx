@@ -41,6 +41,12 @@ export default function Footer() {
                   Contact Us
                 </Link>
               </li>
+              <li>
+                <Link href="/login" className="text-background/60 hover:text-primary transition-colors flex items-center gap-2">
+                  <div className="h-1 w-1 rounded-full bg-primary" />
+                  Admin Portal
+                </Link>
+              </li>
             </ul>
           </div>
 
