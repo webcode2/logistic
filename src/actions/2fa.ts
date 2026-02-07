@@ -119,7 +119,7 @@ export async function initiate2FASetup(userId: string) {
     await prisma.user.update({
       where: { id: userId },
       data: {
-        twoFactorTempSecret: encryptSecret(secret),
+        twoFactorTempSecret: await encryptSecret(secret),
         twoFactorTempSecretExpiresAt: setupExpiresAt,
         twoFactorTempBackupCodes: backupCodes,
       },

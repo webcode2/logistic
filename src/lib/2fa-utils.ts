@@ -34,7 +34,7 @@ export async function generateQRCodeDataUrl(otpAuthUrl: string): Promise<string>
 export async function verifyToken(secret: string, token: string): Promise<boolean> {
   try {
     // Handle potentially encrypted secret
-    const decryptedSecret = decryptSecret(secret);
+    const decryptedSecret = await decryptSecret(secret);
     return authenticator.verify({ token, secret: decryptedSecret });
   } catch (error) {
     // If decryption fails, it might be an unencrypted legacy secret
@@ -50,7 +50,7 @@ export async function verifyToken(secret: string, token: string): Promise<boolea
 /**
  * Encrypt a secret using AES-256-CBC
  */
-export function encryptSecret(secret: string): string {
+export async function encryptSecret(secret: string): Promise<string> {
   const encryptionKey = process.env.ENCRYPTION_KEY;
   if (!encryptionKey) {
     console.warn('ENCRYPTION_KEY not found in environment. Secret will not be encrypted.');
@@ -82,7 +82,7 @@ export function encryptSecret(secret: string): string {
 /**
  * Decrypt a secret using AES-256-CBC
  */
-export function decryptSecret(encryptedData: string): string {
+export async function decryptSecret(encryptedData: string): Promise<string> {
   const encryptionKey = process.env.ENCRYPTION_KEY;
   if (!encryptionKey || !encryptedData.includes(':')) {
     return encryptedData;
