@@ -1,7 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { generateSecret, generateQRCodeUrl, generateQRCodeDataUrl, generateBackupCodes, hashBackupCodes, verifyBackupCode, verifyToken } from '@/lib/2fa-utils';
+import { generateSecret, generateQRCodeUrl, generateQRCodeDataUrl, generateBackupCodes, hashBackupCodes, verifyBackupCode, verifyToken, encryptSecret } from '@/lib/2fa-utils';
 import { formatError } from '@/lib/utils';
 
 
@@ -119,7 +119,7 @@ export async function initiate2FASetup(userId: string) {
     await prisma.user.update({
       where: { id: userId },
       data: {
-        twoFactorTempSecret: secret,
+        twoFactorTempSecret: encryptSecret(secret),
         twoFactorTempSecretExpiresAt: setupExpiresAt,
         twoFactorTempBackupCodes: backupCodes,
       },
