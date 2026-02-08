@@ -417,3 +417,20 @@ export async function markAsDelivered(waybill_id: string) {
     };
   }
 }
+
+export async function deleteWaybill(waybill_id: string) {
+  try {
+    // Delete waybill (cascades to tracking events)
+    await prisma.waybill.delete({
+      where: { id: waybill_id },
+    });
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: formatError(error, 'Failed to delete waybill.'),
+    };
+  }
+}
+

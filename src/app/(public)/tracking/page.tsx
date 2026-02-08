@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Search, MapPin, ArrowRight, Package, Truck, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,36 +53,48 @@ const getStatusIcon = (status: ShipmentStatus) => {
 import Image from 'next/image';
 
 export default function TrackingPage() {
-  const [trackingCode, setTrackingCode] = useState('');
+  const searchParams = useSearchParams();
+  const [trackingCode, setTrackingCode] = useState(searchParams.get('code') || '');
   const [waybill, setWaybill] = useState<Waybill | null>(null);
   const [trackingEvents, setTrackingEvents] = useState<TrackingEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (trackingCode.trim()) {
-      startTransition(async () => {
-        try {
-          const result = await getWaybillByTrackingCode(trackingCode.trim());
-          if (result.success && result.waybill) {
-            setWaybill(result.waybill);
-            setError(null);
-            // Fetch tracking events for this waybill
-            const eventsResult = await getTrackingEvents(result.waybill.id);
-            setTrackingEvents(eventsResult.events || []);
-          } else {
-            setError(result.error || 'Waybill not found');
-            setWaybill(null);
-            setTrackingEvents([]);
-          }
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'An error occurred');
+  const performSearch = (code: string) => {
+    if (!code.trim()) return;
+    startTransition(async () => {
+      try {
+        const result = await getWaybillByTrackingCode(code.trim());
+        if (result.success && result.waybill) {
+          setWaybill(result.waybill);
+          setError(null);
+          // Fetch tracking events for this waybill
+          const eventsResult = await getTrackingEvents(result.waybill.id);
+          setTrackingEvents(eventsResult.events || []);
+        } else {
+          setError(result.error || 'Waybill not found');
           setWaybill(null);
           setTrackingEvents([]);
         }
-      });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+        setWaybill(null);
+        setTrackingEvents([]);
+      }
+    });
+  };
+
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (code) {
+      setTrackingCode(code);
+      performSearch(code);
     }
+  }, [searchParams]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    performSearch(trackingCode);
   };
 
   const handleClear = () => {

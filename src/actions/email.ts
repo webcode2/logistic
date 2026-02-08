@@ -6,6 +6,25 @@ import { formatError } from '@/lib/utils';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+/**
+ * Gets the formatted 'from' email string using the domain from env
+ * and a context-specific prefix (info, zeno, customs, etc.)
+ */
+function getFromAddress(prefix: string, agentName?: string) {
+  const domain = process.env.FROM_DOMAIN || 'resend.dev';
+
+  // Allow overriding the prefix from env, e.g. FROM_EMAIL_ALIAS_INFO=newsletter
+  const envKey = `FROM_EMAIL_ALIAS_${prefix.toUpperCase()}`;
+  const finalPrefix = process.env[envKey] || prefix;
+
+  const email = `${finalPrefix}@${domain}`;
+
+  if (agentName) {
+    return `${agentName} From Rhine Route <${email}>`;
+  }
+  return `Rhine Route <${email}>`;
+}
+
 function getRandomLogisticsAgent(): string {
   const agents = [
     "Sarah", // American Female
@@ -23,9 +42,8 @@ export async function sendShipmentConfirmationEmail(data: ShipmentEmailData) {
   const { waybill, trackingUrl } = data;
 
   try {
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
     const agentName = getRandomLogisticsAgent();
-    const formattedFrom = `${agentName} via Rhine Route <${fromEmail}>`;
+    const formattedFrom = getFromAddress('info', agentName);
 
     // Parallelize sends
     const [shipperResult, receiverResult] = await Promise.all([
@@ -59,9 +77,8 @@ export async function sendShipmentConfirmationEmail(data: ShipmentEmailData) {
 
 export async function sendShipmentStatusUpdateEmail(waybill: Waybill, trackingUrl: string) {
   try {
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
     const agentName = getRandomLogisticsAgent();
-    const formattedFrom = `${agentName} From Rhine Route <${fromEmail}>`;
+    const formattedFrom = getFromAddress('tracking', agentName);
 
     // Parallelize sends
     const [shipperResult, receiverResult] = await Promise.all([
@@ -95,9 +112,8 @@ export async function sendShipmentStatusUpdateEmail(waybill: Waybill, trackingUr
 
 export async function sendCustomsClearanceEmail(waybill: Waybill, trackingUrl: string) {
   try {
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
     const agentName = getRandomLogisticsAgent();
-    const formattedFrom = `${agentName} (Customs Dept) <${fromEmail}>`;
+    const formattedFrom = getFromAddress('customs', `${agentName} (Customs Dept)`);
 
     // Parallelize sends
     await Promise.all([
@@ -126,8 +142,7 @@ export async function sendCustomsClearanceEmail(waybill: Waybill, trackingUrl: s
 
 export async function sendGenericAdminEmail(to: string, subject: string, body: string, waybillCode?: string) {
   try {
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-    const formattedFrom = `Zeno <${fromEmail}>`;
+    const formattedFrom = getFromAddress('zeno', 'Zeno');
 
     await resend.emails.send({
       from: formattedFrom,
@@ -145,21 +160,20 @@ export async function sendGenericAdminEmail(to: string, subject: string, body: s
 
 export async function sendContactEmail(name: string, email: string, message: string) {
   try {
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    const formattedFrom = getFromAddress('support');
 
     // Parallelize sending for speed
-    // Note: We use the sender's name in subject but fromEmail must be verified domain or onboarding
     await Promise.all([
       // 1. Send notification to admin
       resend.emails.send({
-        from: fromEmail,
+        from: formattedFrom,
         to: process.env.ADMIN_EMAIL,
         subject: `New Contact Form Inquiry from ${name}`,
         html: generateContactNotificationEmail(name, email, message),
       }),
       // 2. Send automated receipt to the user
       resend.emails.send({
-        from: fromEmail,
+        from: formattedFrom,
         to: email,
         subject: 'We received your message - Rhine Route',
         html: generateContactReceiptEmail(name, message),
@@ -290,7 +304,7 @@ function generateReceiverEmail(waybill: Waybill, trackingUrl: string): string {
             
             <p>Track your package every step of the way:</p>
             <div style="text-align: center;">
-              <a href="${trackingUrl}" class="cta-button">Track Delivery Progress</a>
+              <a href="${trackingUrl}" class="cta-button">Open Live Tracker</a>
             </div>
             
             <p style="margin-top: 20px;">
@@ -356,7 +370,7 @@ function generateStatusUpdateEmail(waybill: Waybill, trackingUrl: string, isSend
             </p>
             
             <div style="text-align: center;">
-              <a href="${trackingUrl}" class="cta-button">View Journey Timeline</a>
+              <a href="${trackingUrl}" class="cta-button">Open Live Tracker</a>
             </div>
           </div>
           
@@ -402,7 +416,7 @@ function generateCustomsClearanceEmail(waybill: Waybill, trackingUrl: string, is
             <p>This is a standard procedure and typically requires additional information or verification to proceed.</p>
             <p><strong>Next Steps:</strong> Our customs brokerage team is currently working on this. We will contact you if any specific documents are required from your side.</p>
             <div style="text-align: center;">
-              <a href="${trackingUrl}" class="cta-button">View Live Status</a>
+              <a href="${trackingUrl}" class="cta-button">Open Live Tracker</a>
             </div>
           </div>
           <div class="footer">
