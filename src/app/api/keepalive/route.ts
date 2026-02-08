@@ -7,12 +7,16 @@ export async function POST(req: Request) {
     if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
+    console.log("Keepalive pinged successfully.");
     try {
         await keepAlive();
         return NextResponse.json({ ok: true });
     } catch (error) {
-        console.error('Keepalive error:', error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Keepalive error:', message);
+        return NextResponse.json({
+            error: "Internal Server Error",
+            message: message
+        }, { status: 500 });
     }
 }

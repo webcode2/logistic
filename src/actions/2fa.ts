@@ -267,7 +267,7 @@ export async function disable2FA(userId: string, backupCode: string) {
     let validCode = false;
 
     for (const hashedCode of hashedCodes) {
-      if (verifyBackupCode(hashedCode, backupCode.trim())) {
+      if (await verifyBackupCode(hashedCode, backupCode.trim())) {
         validCode = true;
         break;
       }
